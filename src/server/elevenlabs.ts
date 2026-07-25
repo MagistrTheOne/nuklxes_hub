@@ -89,3 +89,63 @@ export async function synthesizeElevenLabsSpeech(input: SynthesizeSpeechInput) {
     modelId: input.modelId ?? ELEVENLABS_VOICE_MODEL_ID,
   };
 }
+
+function resolveAgentId(agentId?: string) {
+  const resolved = agentId?.trim() || process.env.ELEVENLABS_AGENT_ID?.trim();
+  if (!resolved) {
+    throw new Error('ELEVENLABS_AGENT_ID is missing from the environment');
+  }
+  return resolved;
+}
+
+/**
+ * Mint a short-lived WebRTC conversation token for ElevenAgents.
+ * @see https://elevenlabs.io/docs/eleven-agents/libraries/react
+ */
+export async function createElevenLabsConversationToken(agentId?: string) {
+  const resolvedAgentId = resolveAgentId(agentId);
+  const apiKey = requireElevenLabsApiKey();
+
+  const url = new URL('https://api.elevenlabs.io/v1/convai/conversation/token');
+  url.searchParams.set('agent_id', resolvedAgentId);
+
+  const response = await fetch(url, {
+    headers: { 'xi-api-key': apiKey },
+  });
+
+  const json = (await response.json().catch(() => null)) as {
+    token?: string;
+    detail?: string | { message?: string };
+  } | null;
+
+  if (!response.ok || !json?.token) {
+    const detail =
+      typeof json?.detail === 'string'
+        ? json.detail
+        : json?.detail?.message ?? `ElevenLabs conversation token failed (${response.status})`;
+    throw new Error(detail);
+  }
+
+  return {
+    conversationToken: json.token,
+    agentId: resolvedAgentId,
+  };
+}
+
+/** WebSocket signed URL fallback for private agents. */
+export async function createElevenLabsSignedUrl(agentId?: string) {
+  const resolvedAgentId = resolveAgentId(agentId);
+  const client = createElevenLabsClient();
+  const response = await client.conversationalAi.conversations.getSignedUrl({
+    agentId: resolvedAgentId,
+  });
+
+  if (!response.signedUrl) {
+    throw new Error('ElevenLabs signed URL missing from response');
+  }
+
+  return {
+    signedUrl: response.signedUrl,
+    agentId: resolvedAgentId,
+  };
+}
