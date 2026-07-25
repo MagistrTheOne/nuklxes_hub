@@ -1,41 +1,57 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';
-import { users } from '../../db/schema';
+import { membership, user } from '../../db/schema';
 
-type UpsertUserInput = {
+type ClerkIdentityInput = {
   clerkUserId: string;
   email: string;
   fullName?: string | null;
 };
 
-export async function upsertUserFromClerk(input: UpsertUserInput) {
+/**
+ * Resolve Clerk caller against the shared Neon Better Auth `user` row (by email).
+ * No writes — does not invent a second users table or duplicate membership.
+ * Full Clerk↔Better Auth bridge comes next.
+ */
+export async function resolveClerkIdentity(input: ClerkIdentityInput) {
   const db = createDb();
-  const now = new Date();
+  const email = input.email.trim().toLowerCase();
 
-  const [user] = await db
-    .insert(users)
-    .values({
-      clerkUserId: input.clerkUserId,
-      email: input.email,
-      fullName: input.fullName ?? null,
-      updatedAt: now,
+  const [platformUser] = await db
+    .select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
     })
-    .onConflictDoUpdate({
-      target: users.clerkUserId,
-      set: {
-        email: input.email,
-        fullName: input.fullName ?? null,
-        updatedAt: now,
-      },
-    })
-    .returning();
+    .from(user)
+    .where(sql`lower(${user.email}) = ${email}`)
+    .limit(1);
 
-  return user;
+  const memberships = platformUser
+    ? await db
+        .select({
+          organizationId: membership.organizationId,
+        })
+        .from(membership)
+        .where(eq(membership.userId, platformUser.id))
+    : [];
+
+  return {
+    clerkUserId: input.clerkUserId,
+    email: input.email,
+    fullName: input.fullName ?? platformUser?.name ?? null,
+    platformUserId: platformUser?.id ?? null,
+    linked: Boolean(platformUser),
+    organizationIds: memberships.map((m) => m.organizationId),
+  };
 }
 
-export async function getUserByClerkId(clerkUserId: string) {
-  const db = createDb();
-  const [user] = await db.select().from(users).where(eq(users.clerkUserId, clerkUserId)).limit(1);
-  return user ?? null;
+/** @deprecated use resolveClerkIdentity — no Clerk row writes on shared Neon */
+export async function upsertUserFromClerk(input: ClerkIdentityInput) {
+  return resolveClerkIdentity(input);
+}
+
+export async function getUserByClerkId(_clerkUserId: string) {
+  return null;
 }

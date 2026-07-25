@@ -8,13 +8,13 @@ loadEnv({ path: '.env', quiet: true });
 
 /**
  * List NULLXES digital employees (platform Neon).
- * Falls back to embedded snapshot if PLATFORM_DATABASE_URL is unavailable.
+ * Falls back to embedded snapshot if DATABASE_URL is unavailable.
  */
 export async function GET(request: Request) {
   try {
     await verifyClerkBearerToken(request.headers.get('authorization'));
 
-    if (!process.env.PLATFORM_DATABASE_URL?.trim()) {
+    if (!process.env.DATABASE_URL?.trim()) {
       return Response.json({
         success: true,
         data: FALLBACK_EMPLOYEES,
@@ -27,11 +27,11 @@ export async function GET(request: Request) {
       return Response.json({
         success: true,
         data: employees,
-        meta: { source: 'platform' },
+        meta: { source: 'neon' },
       });
     } catch (error) {
-      if (__DEV__) {
-        console.warn('[api/v1/employees] platform failed, fallback', error);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        console.warn('[api/v1/employees] neon failed, fallback', error);
       }
       return Response.json({
         success: true,

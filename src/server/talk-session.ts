@@ -13,7 +13,7 @@ import { getReadyFallbackEmployee } from '@/features/workforce/data/employees';
 export async function bootstrapTalkSession(employeeId: string): Promise<TalkBootstrap> {
   let employee = null as Awaited<ReturnType<typeof getPlatformEmployee>>;
 
-  if (process.env.PLATFORM_DATABASE_URL?.trim()) {
+  if (process.env.DATABASE_URL?.trim()) {
     try {
       employee = await getPlatformEmployee(employeeId);
     } catch {

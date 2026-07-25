@@ -9,6 +9,10 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL is required for drizzle-kit. Add it to .env');
 }
 
+/**
+ * Typed mirror of shared NULLXES Neon only.
+ * Never `drizzle-kit push` against production — schema owned by dplatform.
+ */
 export default defineConfig({
   schema: './db/schema.ts',
   out: './drizzle',

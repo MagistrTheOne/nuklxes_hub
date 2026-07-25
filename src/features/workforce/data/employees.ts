@@ -1,6 +1,6 @@
 /**
  * Offline / bootstrap fallback for NULLXES org employees.
- * Live source: PLATFORM_DATABASE_URL → digital_employee + employee_provider_config.
+ * Live source: DATABASE_URL (shared Neon) → digital_employee + employee_provider_config.
  */
 
 import type { DigitalEmployee } from '@/features/workforce/types';

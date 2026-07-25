@@ -7,12 +7,12 @@ export { isAnamSlot, resolveAnamApiKey, slotKeyPresent };
 export async function resolveEmployeeSession(employeeId: string) {
   let employee = null as Awaited<ReturnType<typeof getPlatformEmployee>>;
 
-  if (process.env.PLATFORM_DATABASE_URL?.trim()) {
+  if (process.env.DATABASE_URL?.trim()) {
     try {
       employee = await getPlatformEmployee(employeeId);
     } catch (error) {
       if (typeof __DEV__ !== 'undefined' && __DEV__) {
-        console.warn('[anam-slots] platform lookup failed, using fallback', error);
+        console.warn('[anam-slots] neon lookup failed, using fallback', error);
       }
     }
   }

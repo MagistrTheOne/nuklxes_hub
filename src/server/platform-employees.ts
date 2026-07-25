@@ -1,14 +1,14 @@
 import { and, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import { createPlatformDb } from '../../db/platform';
+import { createDb } from '../../db';
 import {
   digitalEmployee,
   employeeProviderConfig,
   organization,
   type AnamAvatarProviderConfig,
   type SessionProviderConfig,
-} from '../../db/platform-schema';
+} from '../../db/schema';
 import { mapPlatformEmployee } from '@/features/workforce/lib/map-employee';
 import type { DigitalEmployee } from '@/features/workforce/types';
 import { isAnamSlot, slotKeyPresent } from '@/server/anam-key';
@@ -22,7 +22,7 @@ function resolveOrgId() {
   return process.env.PLATFORM_ORG_ID?.trim() || null;
 }
 
-async function resolveNullxesOrgId(db: ReturnType<typeof createPlatformDb>) {
+async function resolveNullxesOrgId(db: ReturnType<typeof createDb>) {
   const fromEnv = resolveOrgId();
   if (fromEnv) return fromEnv;
 
@@ -65,7 +65,7 @@ function toEmployee(row: {
 }
 
 export async function listPlatformEmployees(): Promise<DigitalEmployee[]> {
-  const db = createPlatformDb();
+  const db = createDb();
   const orgId = await resolveNullxesOrgId(db);
   if (!orgId) {
     throw new Error('NULLXES organization not found in platform DB');
@@ -110,7 +110,7 @@ export async function listPlatformEmployees(): Promise<DigitalEmployee[]> {
 }
 
 export async function getPlatformEmployee(id: string): Promise<DigitalEmployee | null> {
-  const db = createPlatformDb();
+  const db = createDb();
 
   const [row] = await db
     .select({

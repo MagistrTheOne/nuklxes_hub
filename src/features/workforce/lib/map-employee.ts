@@ -1,7 +1,7 @@
 import type {
   AnamAvatarProviderConfig,
   SessionProviderConfig,
-} from '../../../../db/platform-schema';
+} from '../../../../db/schema';
 import { resolveTalkVoiceMode } from '@/features/talk/lib/resolve-talk-voice-mode';
 import type { DigitalEmployee, EmployeeStatus } from '@/features/workforce/types';
 

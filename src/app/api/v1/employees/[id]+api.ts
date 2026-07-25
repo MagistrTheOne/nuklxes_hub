@@ -20,19 +20,19 @@ export async function GET(request: Request, context: RouteContext) {
       return Response.json({ success: false, error: 'id is required' }, { status: 400 });
     }
 
-    if (process.env.PLATFORM_DATABASE_URL?.trim()) {
+    if (process.env.DATABASE_URL?.trim()) {
       try {
         const employee = await getPlatformEmployee(id);
         if (employee) {
           return Response.json({
             success: true,
             data: employee,
-            meta: { source: 'platform' },
+            meta: { source: 'neon' },
           });
         }
       } catch (error) {
-        if (__DEV__) {
-          console.warn('[api/v1/employees/:id] platform failed', error);
+        if (typeof __DEV__ !== 'undefined' && __DEV__) {
+          console.warn('[api/v1/employees/:id] neon failed', error);
         }
       }
     }
