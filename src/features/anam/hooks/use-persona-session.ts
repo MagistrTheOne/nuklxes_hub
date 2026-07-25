@@ -4,10 +4,21 @@ import { Platform } from 'react-native';
 
 import { requestAnamSessionToken } from '@/features/anam/api/request-session-token';
 import type { AnamStreamClient } from '@/features/anam/client/types';
-import { ANAM_VIDEO_ELEMENT_ID, DEFAULT_ANAM_PERSONA } from '@/features/anam/constants';
+import { ANAM_VIDEO_ELEMENT_ID } from '@/features/anam/constants';
 import type { AnamPersonaConfig, PersonaSessionStatus } from '@/features/anam/types';
+import {
+  DEFAULT_EMPLOYEE_ID,
+  type AnamSlot,
+} from '@/features/workforce/data/employees';
 
-export function usePersonaSession(personaConfig: AnamPersonaConfig = DEFAULT_ANAM_PERSONA) {
+export type UsePersonaSessionOptions = {
+  employeeId?: string;
+  personaConfig?: AnamPersonaConfig;
+  anamSlot?: AnamSlot;
+};
+
+export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
+  const employeeId = options.employeeId ?? DEFAULT_EMPLOYEE_ID;
   const { getToken } = useAuth();
   const clientRef = useRef<AnamStreamClient | null>(null);
   const [status, setStatus] = useState<PersonaSessionStatus>(
@@ -39,7 +50,9 @@ export function usePersonaSession(personaConfig: AnamPersonaConfig = DEFAULT_ANA
     try {
       const { sessionToken } = await requestAnamSessionToken({
         getToken,
-        personaConfig,
+        employeeId: options.personaConfig ? undefined : employeeId,
+        personaConfig: options.personaConfig,
+        anamSlot: options.anamSlot,
       });
 
       setStatus('connecting');
@@ -58,7 +71,7 @@ export function usePersonaSession(personaConfig: AnamPersonaConfig = DEFAULT_ANA
         console.warn('[anam] start failed', err);
       }
     }
-  }, [getToken, personaConfig]);
+  }, [employeeId, getToken, options.anamSlot, options.personaConfig]);
 
   return {
     status,
@@ -66,5 +79,6 @@ export function usePersonaSession(personaConfig: AnamPersonaConfig = DEFAULT_ANA
     start,
     stop,
     isWeb: Platform.OS === 'web',
+    employeeId,
   };
 }

@@ -2,14 +2,17 @@ import { config as loadEnv } from 'dotenv';
 
 import { verifyClerkBearerToken } from '@/server/clerk-jwt';
 import {
-  createAnamSessionToken,
+  isAnamSlot,
+  mintAnamSession,
   type AnamPersonaConfig,
 } from '@/server/anam';
 
 loadEnv({ path: '.env', quiet: true });
 
 type SessionBody = {
+  employeeId?: string;
   personaConfig?: AnamPersonaConfig;
+  anamSlot?: string;
   clientLabel?: string;
 };
 
@@ -32,38 +35,49 @@ function isPersonaConfig(value: unknown): value is AnamPersonaConfig {
 
 /**
  * Mint an Anam session token for the signed-in Clerk user.
- * API key never leaves the server.
+ * Prefer `{ employeeId }` — server picks personaId + lab slot key.
+ * API keys never leave the server.
  */
 export async function POST(request: Request) {
   try {
     await verifyClerkBearerToken(request.headers.get('authorization'));
     const body = (await request.json().catch(() => ({}))) as SessionBody;
 
-    if (!isPersonaConfig(body.personaConfig)) {
+    const employeeId =
+      typeof body.employeeId === 'string' && body.employeeId.length > 0
+        ? body.employeeId
+        : undefined;
+
+    if (!employeeId && !isPersonaConfig(body.personaConfig)) {
       return Response.json(
         {
           success: false,
-          error: 'personaConfig is required (personaId or ephemeral avatar/voice/llm config)',
+          error: 'employeeId or personaConfig is required',
         },
         { status: 400 },
       );
     }
 
-    const { sessionToken } = await createAnamSessionToken({
+    const anamSlot =
+      body.anamSlot && isAnamSlot(body.anamSlot) ? body.anamSlot : undefined;
+
+    const { sessionToken, anamSlot: usedSlot } = await mintAnamSession({
+      employeeId,
       personaConfig: body.personaConfig,
+      anamSlot,
       clientLabel: body.clientLabel ?? 'nullxes-hub',
     });
 
     return Response.json({
       success: true,
-      data: { sessionToken },
+      data: { sessionToken, anamSlot: usedSlot },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Anam session failed';
     const status =
       message.includes('Bearer') || message.includes('token')
         ? 401
-        : message.includes('ANAM_API_KEY')
+        : message.includes('ANAM_API_KEY') || message.includes('not ready')
           ? 503
           : 500;
 

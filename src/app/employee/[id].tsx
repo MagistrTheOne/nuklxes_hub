@@ -1,15 +1,15 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MessageSquare, Mic } from 'lucide-react-native';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, MessageSquare, Video } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
-import { getMockEmployee } from '@/features/workforce/data/mock-employees';
+import { getEmployee } from '@/features/workforce/data/employees';
 
 export default function EmployeeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const employee = getMockEmployee(id ?? '');
+  const employee = getEmployee(id ?? '');
 
   if (!employee) {
     return (
@@ -48,9 +48,10 @@ export default function EmployeeScreen() {
                   }`}
                 />
                 <Text className="text-[14px] text-white/50">
-                  {employee.status === 'active' ? 'available' : 'idle'}
+                  {employee.anamReady ? 'live ready' : 'pending'}
                 </Text>
               </View>
+              <Text className="mt-2 text-[12px] text-white/30">{employee.anamSlot}</Text>
             </View>
           </View>
 
@@ -62,28 +63,28 @@ export default function EmployeeScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => Alert.alert('Voice', 'Voice SDK stub — coming later.')}
+            onPress={() => {
+              if (!employee.anamReady) {
+                Alert.alert('Live', 'Anam persona not ready on this slot yet.');
+                return;
+              }
+              router.push(`/(tabs)/live?employeeId=${employee.id}` as Href);
+            }}
             className="mt-3 h-14 flex-row items-center justify-center rounded-2xl border border-white/15 bg-[#0B0B0B] active:opacity-80">
-            <Mic size={18} color="#FFFFFF" />
-            <Text className="ml-2 text-[16px] font-semibold text-white">Voice</Text>
+            <Video size={18} color="#FFFFFF" />
+            <Text className="ml-2 text-[16px] font-semibold text-white">Live</Text>
           </Pressable>
 
           <Text className="mb-3 mt-8 text-[12px] font-semibold tracking-[1.5px] text-white/35">
-            RECENT
+            ANAM
           </Text>
           <View className="mb-4 border-b border-white/10 pb-4">
-            <View className="flex-row justify-between">
-              <Text className="text-[15px] font-medium text-white">Session completed</Text>
-              <Text className="text-[13px] text-white/35">2d ago</Text>
-            </View>
-            <Text className="mt-1 text-[13px] text-white/40">Financial review · rated 5.0</Text>
+            <Text className="text-[13px] text-white/40">personaId</Text>
+            <Text className="mt-1 text-[13px] text-white/70">{employee.personaId}</Text>
           </View>
           <View className="border-b border-white/10 pb-4">
-            <View className="flex-row justify-between">
-              <Text className="text-[15px] font-medium text-white">Runtime updated</Text>
-              <Text className="text-[13px] text-white/35">9d ago</Text>
-            </View>
-            <Text className="mt-1 text-[13px] text-white/40">Access level: Omega</Text>
+            <Text className="text-[13px] text-white/40">avatarId</Text>
+            <Text className="mt-1 text-[13px] text-white/70">{employee.avatarId}</Text>
           </View>
         </ScrollView>
       </SafeAreaView>

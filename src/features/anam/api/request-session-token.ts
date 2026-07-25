@@ -1,4 +1,5 @@
 import type { AnamPersonaConfig, AnamSessionTokenResponse } from '@/features/anam/types';
+import type { AnamSlot } from '@/features/workforce/data/employees';
 
 type GetToken = (options?: { skipCache?: boolean }) => Promise<string | null>;
 
@@ -9,12 +10,18 @@ function resolveApiUrl(path: string) {
 
 export async function requestAnamSessionToken(params: {
   getToken: GetToken;
-  personaConfig: AnamPersonaConfig;
+  employeeId?: string;
+  personaConfig?: AnamPersonaConfig;
+  anamSlot?: AnamSlot;
   clientLabel?: string;
 }): Promise<AnamSessionTokenResponse> {
   const token = await params.getToken({ skipCache: true });
   if (!token) {
     throw new Error('Missing Clerk session token');
+  }
+
+  if (!params.employeeId && !params.personaConfig) {
+    throw new Error('employeeId or personaConfig is required');
   }
 
   const response = await fetch(resolveApiUrl('/api/v1/anam/session'), {
@@ -24,7 +31,9 @@ export async function requestAnamSessionToken(params: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      employeeId: params.employeeId,
       personaConfig: params.personaConfig,
+      anamSlot: params.anamSlot,
       clientLabel: params.clientLabel ?? 'nullxes-hub',
     }),
   });

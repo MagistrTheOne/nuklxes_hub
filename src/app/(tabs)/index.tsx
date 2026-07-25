@@ -5,10 +5,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
-import {
-  MOCK_EMPLOYEES,
-  MOCK_WORKFORCE_STATS,
-} from '@/features/workforce/data/mock-employees';
+import { DIGITAL_EMPLOYEES, WORKFORCE_STATS } from '@/features/workforce/data/employees';
 
 export default function WorkforceScreen() {
   const { user } = useUser();
@@ -38,9 +35,9 @@ export default function WorkforceScreen() {
           <View className="mb-5 flex-row gap-2.5">
             {(
               [
-                [`${MOCK_WORKFORCE_STATS.active} active`, 'active'],
-                [`${MOCK_WORKFORCE_STATS.live} live`, 'live'],
-                [`${MOCK_WORKFORCE_STATS.sessions} sessions`, 'sessions'],
+                [`${WORKFORCE_STATS.active} active`, 'active'],
+                [`${WORKFORCE_STATS.live} live`, 'live'],
+                [`${WORKFORCE_STATS.sessions} sessions`, 'sessions'],
               ] as const
             ).map(([label, key]) => (
               <View
@@ -51,7 +48,7 @@ export default function WorkforceScreen() {
             ))}
           </View>
 
-          {MOCK_EMPLOYEES.map((employee) => (
+          {DIGITAL_EMPLOYEES.map((employee) => (
             <Pressable
               key={employee.id}
               onPress={() => router.push(`/employee/${employee.id}` as Href)}
@@ -70,7 +67,7 @@ export default function WorkforceScreen() {
           ))}
 
           <Text className="mt-4 text-center text-[12px] text-white/30">
-            Avatars & SDK — placeholders until assets land
+            Anam Lab · 5 ready · Akane / Evgenia / Megan pending
           </Text>
         </ScrollView>
       </SafeAreaView>
