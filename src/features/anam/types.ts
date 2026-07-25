@@ -18,6 +18,8 @@ export type AnamPersonaConfig = AnamEphemeralPersonaConfig | AnamStatefulPersona
 
 export type AnamSessionTokenResponse = {
   sessionToken: string;
+  /** Lab key slot used to mint this token (e.g. ANAM_API_KEY_2). */
+  anamSlot?: string;
 };
 
 export type PersonaSessionStatus =

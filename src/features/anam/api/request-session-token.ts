@@ -41,12 +41,15 @@ export async function requestAnamSessionToken(params: {
   const json = (await response.json().catch(() => null)) as {
     success?: boolean;
     error?: string;
-    data?: { sessionToken?: string };
+    data?: { sessionToken?: string; anamSlot?: string };
   } | null;
 
   if (!response.ok || !json?.success || !json.data?.sessionToken) {
     throw new Error(json?.error ?? `Anam session request failed (${response.status})`);
   }
 
-  return { sessionToken: json.data.sessionToken };
+  return {
+    sessionToken: json.data.sessionToken,
+    anamSlot: json.data.anamSlot,
+  };
 }
