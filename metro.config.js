@@ -6,6 +6,11 @@ const { withNativeWind } = require("nativewind/metro");
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
+const ANAM_CJS_ENTRY = path.resolve(
+  __dirname,
+  "node_modules/@anam-ai/js-sdk/dist/main/index.js",
+);
+
 /**
  * Windows + Expo SSR: API routes are requested as absolute posix paths
  * (D:/.../me+api.ts). Metro often fails to resolve those and reports the
@@ -39,22 +44,34 @@ function resolveWindowsApiRoute(moduleName) {
   return null;
 }
 
-/** Fix @anam-ai/js-sdk ESM extensionless relative imports for Metro. */
-function resolveAnamRelative(context, moduleName) {
-  const origin = context.originModulePath || "";
-  if (!origin.includes(`${path.sep}@anam-ai${path.sep}js-sdk${path.sep}`)) {
-    return null;
+/**
+ * @anam-ai/js-sdk ships an ESM "module" build with extensionless re-exports
+ * that Metro cannot resolve on Windows. Force CJS + fix relative imports.
+ */
+function resolveAnamModule(context, moduleName) {
+  if (
+    moduleName === "@anam-ai/js-sdk" ||
+    moduleName === "@anam-ai/js-sdk/dist/main" ||
+    moduleName === "@anam-ai/js-sdk/dist/main/index.js" ||
+    moduleName === "@anam-ai/js-sdk/dist/main/index"
+  ) {
+    return { type: "sourceFile", filePath: ANAM_CJS_ENTRY };
   }
-  if (typeof moduleName !== "string" || !moduleName.startsWith(".")) {
+
+  const origin = context.originModulePath || "";
+  const inAnam = origin.includes(`${path.sep}@anam-ai${path.sep}js-sdk${path.sep}`);
+  if (!inAnam || typeof moduleName !== "string" || !moduleName.startsWith(".")) {
     return null;
   }
 
-  const base = path.resolve(path.dirname(origin), moduleName);
-  const candidates = [
-    base,
-    `${base}.js`,
-    path.join(base, "index.js"),
-  ];
+  // If somehow still inside dist/module, jump to the twin file under dist/main.
+  const originMain = origin.replace(
+    `${path.sep}dist${path.sep}module${path.sep}`,
+    `${path.sep}dist${path.sep}main${path.sep}`,
+  );
+  const fromDir = path.dirname(originMain);
+  const base = path.resolve(fromDir, moduleName);
+  const candidates = [base, `${base}.js`, path.join(base, "index.js")];
 
   for (const candidate of candidates) {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
@@ -74,20 +91,9 @@ withApiRouteFix.resolver.resolveRequest = (context, moduleName, platform) => {
     return apiRoute;
   }
 
-  // Prefer CJS entry — ESM "module" build breaks Metro resolution.
-  if (moduleName === "@anam-ai/js-sdk") {
-    return {
-      type: "sourceFile",
-      filePath: path.resolve(
-        __dirname,
-        "node_modules/@anam-ai/js-sdk/dist/main/index.js",
-      ),
-    };
-  }
-
-  const anamRelative = resolveAnamRelative(context, moduleName);
-  if (anamRelative) {
-    return anamRelative;
+  const anam = resolveAnamModule(context, moduleName);
+  if (anam) {
+    return anam;
   }
 
   if (upstreamResolveRequest) {

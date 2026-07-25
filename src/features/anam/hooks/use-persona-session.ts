@@ -3,7 +3,6 @@ import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { requestAnamSessionToken } from '@/features/anam/api/request-session-token';
-import { createAnamStreamClient } from '@/features/anam/client/create-anam-client';
 import type { AnamStreamClient } from '@/features/anam/client/types';
 import { ANAM_VIDEO_ELEMENT_ID, DEFAULT_ANAM_PERSONA } from '@/features/anam/constants';
 import type { AnamPersonaConfig, PersonaSessionStatus } from '@/features/anam/types';
@@ -44,6 +43,8 @@ export function usePersonaSession(personaConfig: AnamPersonaConfig = DEFAULT_ANA
       });
 
       setStatus('connecting');
+      // Dynamic import keeps @anam-ai/js-sdk out of SSR / Node render bundles.
+      const { createAnamStreamClient } = await import('@/features/anam/client/create-anam-client');
       const client = createAnamStreamClient(sessionToken);
       clientRef.current = client;
       await client.streamToVideoElement(ANAM_VIDEO_ELEMENT_ID);

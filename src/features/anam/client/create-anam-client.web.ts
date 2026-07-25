@@ -1,4 +1,5 @@
-import { createClient } from '@anam-ai/js-sdk';
+// Deep CJS entry — package "module" ESM re-exports break Metro on Windows.
+import { createClient } from '@anam-ai/js-sdk/dist/main/index.js';
 
 import type { AnamStreamClient } from '@/features/anam/client/types';
 
