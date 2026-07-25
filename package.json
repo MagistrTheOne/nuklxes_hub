@@ -62,9 +62,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:sync": "node ./scripts/sync-from-neon.mjs",
+    "db:studio": "drizzle-kit studio",
+    "db:generate": "echo Do not generate migrations against shared Neon — schema owned by dplatform && exit 1",
+    "db:push": "echo Do not push to shared Neon — schema owned by dplatform && exit 1"
   },
   "private": true
 }
