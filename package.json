@@ -5,10 +5,12 @@
   "dependencies": {
     "@clerk/expo": "^4.0.3",
     "@expo/ui": "~57.0.7",
+    "@neondatabase/serverless": "^1.1.0",
     "@react-navigation/bottom-tabs": "^7.18.14",
     "@react-navigation/native": "^7.3.14",
     "@tanstack/react-query": "^5.101.4",
     "date-fns": "^4.4.0",
+    "drizzle-orm": "^0.45.2",
     "expo": "~57.0.8",
     "expo-constants": "~57.0.7",
     "expo-device": "~57.0.1",
@@ -23,6 +25,7 @@
     "expo-symbols": "~57.0.1",
     "expo-system-ui": "~57.0.1",
     "expo-web-browser": "~57.0.2",
+    "jose": "^6.2.4",
     "lucide-react-native": "^1.26.0",
     "nativewind": "^4.2.6",
     "react": "19.2.3",
@@ -42,7 +45,10 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -51,7 +57,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "private": true
 }

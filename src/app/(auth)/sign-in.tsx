@@ -1,38 +1,87 @@
-import { useSignIn } from '@clerk/expo';
+import { useAuth, useSignIn } from '@clerk/expo';
 import { type Href, Link, useRouter } from 'expo-router';
 import { Lock, Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/features/auth/components/auth-field';
+import {
+  AuthFormError,
+  firstClerkErrorMessage,
+} from '@/features/auth/components/auth-form-error';
 import { AuthPrimaryButton } from '@/features/auth/components/auth-primary-button';
 import { AuthScreen } from '@/features/auth/components/auth-screen';
-import { createAuthNavigate } from '@/features/auth/lib/navigate-after-auth';
+import { finishAuthSession } from '@/features/auth/lib/navigate-after-auth';
+import { syncUserAfterAuth } from '@/features/auth/lib/sync-user';
 
 export default function SignInScreen() {
   const { signIn, errors, fetchStatus } = useSignIn();
+  const { isSignedIn, getToken } = useAuth();
   const router = useRouter();
-  const navigateAfterAuth = createAuthNavigate((href) => router.replace(href));
 
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isFinishing, setIsFinishing] = useState(false);
 
-  const isFetching = fetchStatus === 'fetching';
+  const isFetching = fetchStatus === 'fetching' || isFinishing;
+  const visibleError = formError ?? firstClerkErrorMessage(errors);
 
   const finalize = async () => {
-    await signIn.finalize({
-      navigate: navigateAfterAuth,
+    setIsFinishing(true);
+    const { error } = await finishAuthSession({
+      finalize: (opts) => signIn.finalize(opts),
+      routerReplace: (href) => router.replace(href),
+      options: {
+        getToken,
+        email: emailAddress.trim(),
+        logLabel: 'sign-in',
+      },
     });
+
+    if (error) {
+      setIsFinishing(false);
+      setFormError(error.message ?? 'Could not finish sign in.');
+      if (__DEV__) {
+        console.warn('[sign-in] finalize error', error);
+      }
+    }
+  };
+
+  const syncAndGoHome = async () => {
+    setIsFinishing(true);
+    await syncUserAfterAuth({
+      getToken,
+      email: emailAddress.trim(),
+      logLabel: 'sign-in',
+    });
+    router.replace('/' as Href);
   };
 
   const onSignIn = async () => {
+    setFormError(null);
+
+    if (isSignedIn) {
+      await syncAndGoHome();
+      return;
+    }
+
     const { error } = await signIn.password({
       emailAddress: emailAddress.trim(),
       password,
     });
 
     if (error) {
+      const message = error.message ?? 'Sign in failed.';
+      if (/already signed in/i.test(message)) {
+        await syncAndGoHome();
+        return;
+      }
+      setFormError(message);
+      if (__DEV__) {
+        console.warn('[sign-in] password error', error);
+      }
       return;
     }
 
@@ -48,14 +97,30 @@ export default function SignInScreen() {
       if (emailCodeFactor) {
         await signIn.mfa.sendEmailCode();
       }
+      return;
+    }
+
+    setFormError(`Sign in incomplete. Status: ${signIn.status}`);
+    if (__DEV__) {
+      console.warn('[sign-in] incomplete', signIn);
     }
   };
 
   const onVerify = async () => {
-    await signIn.mfa.verifyEmailCode({ code });
+    setFormError(null);
+    const { error } = await signIn.mfa.verifyEmailCode({ code });
+
+    if (error) {
+      setFormError(error.message ?? 'Invalid verification code.');
+      return;
+    }
+
     if (signIn.status === 'complete') {
       await finalize();
+      return;
     }
+
+    setFormError(`Verification incomplete. Status: ${signIn.status}`);
   };
 
   if (signIn.status === 'needs_client_trust') {
@@ -68,6 +133,8 @@ export default function SignInScreen() {
         }>
         <Text className="mb-1 text-[28px] font-semibold text-white">Verify</Text>
         <Text className="mb-8 text-[15px] text-white/55">Enter the code sent to your email</Text>
+
+        <AuthFormError message={visibleError} />
 
         <AuthField
           label="Verification code"
@@ -100,6 +167,8 @@ export default function SignInScreen() {
       }>
       <Text className="mb-1 text-[28px] font-semibold text-white">Sign in</Text>
       <Text className="mb-8 text-[15px] text-white/55">Access your digital workforce</Text>
+
+      <AuthFormError message={visibleError} />
 
       <AuthField
         label="Work email"

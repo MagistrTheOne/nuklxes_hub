@@ -5,6 +5,10 @@ import { useState } from 'react';
 import { Text } from 'react-native';
 
 import { AuthField } from '@/features/auth/components/auth-field';
+import {
+  AuthFormError,
+  firstClerkErrorMessage,
+} from '@/features/auth/components/auth-form-error';
 import { AuthPrimaryButton } from '@/features/auth/components/auth-primary-button';
 import { AuthScreen } from '@/features/auth/components/auth-screen';
 import { createAuthNavigate } from '@/features/auth/lib/navigate-after-auth';
@@ -18,20 +22,25 @@ export default function ResetPasswordScreen() {
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const isFetching = fetchStatus === 'fetching';
   const needsNewPassword = signIn.status === 'needs_new_password';
+  const visibleError = formError ?? firstClerkErrorMessage(errors);
 
   const onSendCode = async () => {
+    setFormError(null);
     const { error: createError } = await signIn.create({
       identifier: emailAddress.trim(),
     });
     if (createError) {
+      setFormError(createError.message ?? 'Could not start password reset.');
       return;
     }
 
     const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode();
     if (sendError) {
+      setFormError(sendError.message ?? 'Could not send reset code.');
       return;
     }
 
@@ -39,16 +48,22 @@ export default function ResetPasswordScreen() {
   };
 
   const onVerifyCode = async () => {
-    await signIn.resetPasswordEmailCode.verifyCode({ code });
+    setFormError(null);
+    const { error } = await signIn.resetPasswordEmailCode.verifyCode({ code });
+    if (error) {
+      setFormError(error.message ?? 'Invalid reset code.');
+    }
   };
 
   const onSubmitPassword = async () => {
+    setFormError(null);
     const { error } = await signIn.resetPasswordEmailCode.submitPassword({
       password,
       signOutOfOtherSessions: true,
     });
 
     if (error) {
+      setFormError(error.message ?? 'Could not set new password.');
       return;
     }
 
@@ -69,6 +84,8 @@ export default function ResetPasswordScreen() {
         }>
         <Text className="mb-1 text-[28px] font-semibold text-white">New password</Text>
         <Text className="mb-8 text-[15px] text-white/55">Choose a new password for your account</Text>
+
+        <AuthFormError message={visibleError} />
 
         <AuthField
           label="New password"
@@ -104,6 +121,8 @@ export default function ResetPasswordScreen() {
           Enter the reset code we sent to your email
         </Text>
 
+        <AuthFormError message={visibleError} />
+
         <AuthField
           label="Reset code"
           icon={Lock}
@@ -135,6 +154,8 @@ export default function ResetPasswordScreen() {
       <Text className="mb-8 text-[15px] text-white/55">
         We will send a reset link to your email
       </Text>
+
+      <AuthFormError message={visibleError} />
 
       <AuthField
         label="Work email"

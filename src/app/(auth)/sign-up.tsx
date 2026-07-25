@@ -1,76 +1,270 @@
 import { useAuth, useSignUp } from '@clerk/expo';
 import { type Href, useRouter } from 'expo-router';
-import { Lock, Mail, User } from 'lucide-react-native';
+import { AtSign, Lock, Mail, User } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/features/auth/components/auth-field';
+import {
+  AuthFormError,
+  firstClerkErrorMessage,
+} from '@/features/auth/components/auth-form-error';
 import { AuthPrimaryButton } from '@/features/auth/components/auth-primary-button';
 import { AuthScreen } from '@/features/auth/components/auth-screen';
-import { createAuthNavigate } from '@/features/auth/lib/navigate-after-auth';
+import { finishAuthSession } from '@/features/auth/lib/navigate-after-auth';
+import { syncUserAfterAuth } from '@/features/auth/lib/sync-user';
 
 function splitFullName(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   return {
     firstName: parts[0] ?? '',
-    lastName: parts.slice(1).join(' ') || undefined,
+    lastName: parts.slice(1).join(' ') || parts[0] || 'User',
+  };
+}
+
+/** Matches Clerk Username settings: 4–64, no extended chars, not digits-only. */
+function normalizeUsername(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, '');
+}
+
+function validateUsername(value: string): string | null {
+  const username = normalizeUsername(value);
+  if (username.length < 4 || username.length > 64) {
+    return 'Username must be 4–64 characters.';
+  }
+  if (!/^[a-z0-9_]+$/.test(username)) {
+    return 'Use letters, numbers, and underscore only.';
+  }
+  if (/^\d+$/.test(username)) {
+    return 'Username cannot be numbers only.';
+  }
+  return null;
+}
+
+function signUpDebugSnapshot(signUp: {
+  status: string | null;
+  missingFields: string[];
+  unverifiedFields: string[];
+  requiredFields: string[];
+}) {
+  return {
+    status: signUp.status,
+    missingFields: signUp.missingFields,
+    unverifiedFields: signUp.unverifiedFields,
+    requiredFields: signUp.requiredFields,
   };
 }
 
 export default function SignUpScreen() {
   const { signUp, errors, fetchStatus } = useSignUp();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, getToken } = useAuth();
   const router = useRouter();
-  const navigateAfterAuth = createAuthNavigate((href) => router.replace(href));
 
   const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isFinishing, setIsFinishing] = useState(false);
 
-  const isFetching = fetchStatus === 'fetching';
-  const needsEmailVerification =
-    signUp.status === 'missing_requirements' &&
-    signUp.unverifiedFields.includes('email_address') &&
-    signUp.missingFields.length === 0;
+  const isFetching = fetchStatus === 'fetching' || isFinishing;
+  const clerkError = firstClerkErrorMessage(errors);
+  const visibleError = formError ?? clerkError;
 
-  const onCreateAccount = async () => {
-    const { firstName, lastName } = splitFullName(fullName);
-    const { error } = await signUp.password({
-      emailAddress: emailAddress.trim(),
-      password,
-      firstName,
-      lastName,
+  const finalizeSignUp = async () => {
+    setIsFinishing(true);
+    const { error } = await finishAuthSession({
+      finalize: (opts) => signUp.finalize(opts),
+      routerReplace: (href) => router.replace(href),
+      options: {
+        getToken,
+        email: emailAddress.trim(),
+        fullName: fullName.trim(),
+        logLabel: 'sign-up',
+      },
     });
 
     if (error) {
+      setIsFinishing(false);
+      setFormError(error.message ?? 'Could not finish sign up.');
+      if (__DEV__) {
+        console.warn('[sign-up] finalize error', error);
+      }
+    }
+  };
+
+  /** Satisfy leftover Dashboard requirements (legal / names) after email verify. */
+  const resolveMissingRequirements = async () => {
+    const missing = new Set(signUp.missingFields ?? []);
+    if (missing.size === 0) {
       return;
     }
 
-    await signUp.verifications.sendEmailCode();
-  };
+    const patch: {
+      legalAccepted?: boolean;
+      firstName?: string;
+      lastName?: string;
+      username?: string;
+    } = {};
 
-  const onVerify = async () => {
-    await signUp.verifications.verifyEmailCode({ code });
+    if (missing.has('legal_accepted')) {
+      patch.legalAccepted = true;
+    }
 
-    if (signUp.status === 'complete') {
-      await signUp.finalize({
-        navigate: navigateAfterAuth,
-      });
+    if (missing.has('username')) {
+      patch.username = normalizeUsername(username);
+    }
+
+    if (missing.has('first_name') || missing.has('last_name')) {
+      const names = splitFullName(fullName);
+      if (missing.has('first_name')) {
+        patch.firstName = names.firstName;
+      }
+      if (missing.has('last_name')) {
+        patch.lastName = names.lastName;
+      }
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
+
+    const { error } = await signUp.update(patch);
+    if (error) {
+      setFormError(error.message ?? 'Could not complete required sign-up fields.');
+      if (__DEV__) {
+        console.warn('[sign-up] update missing fields error', error, patch);
+      }
     }
   };
 
-  if (signUp.status === 'complete' || isSignedIn) {
+  const onCreateAccount = async () => {
+    setFormError(null);
+    const { firstName, lastName } = splitFullName(fullName);
+    const normalizedUsername = normalizeUsername(username);
+    const usernameError = validateUsername(normalizedUsername);
+    if (usernameError) {
+      setFormError(usernameError);
+      return;
+    }
+
+    // legalAccepted: UI copy already states continuing = agree to Terms/Privacy.
+    // username is required by Clerk Dashboard ("Require username").
+    const { error } = await signUp.password({
+      emailAddress: emailAddress.trim(),
+      password,
+      username: normalizedUsername,
+      firstName,
+      lastName,
+      legalAccepted: true,
+    });
+
+    if (error) {
+      setFormError(error.message ?? 'Sign up failed. Check email/password and try again.');
+      if (__DEV__) {
+        console.warn('[sign-up] password error', error, signUpDebugSnapshot(signUp));
+      }
+      return;
+    }
+
+    if (__DEV__) {
+      console.log('[sign-up] after password', signUpDebugSnapshot(signUp));
+    }
+
+    const { error: sendError } = await signUp.verifications.sendEmailCode();
+    if (sendError) {
+      setFormError(sendError.message ?? 'Could not send verification code.');
+      if (__DEV__) {
+        console.warn('[sign-up] sendEmailCode error', sendError);
+      }
+      return;
+    }
+
+    if (__DEV__) {
+      console.log('[sign-up] verification code sent', signUpDebugSnapshot(signUp));
+    }
+    setPendingVerification(true);
+  };
+
+  const syncAndGoHome = async () => {
+    setIsFinishing(true);
+    await syncUserAfterAuth({
+      getToken,
+      email: emailAddress.trim(),
+      fullName: fullName.trim(),
+      logLabel: 'sign-up',
+    });
+    router.replace('/' as Href);
+  };
+
+  const onVerify = async () => {
+    setFormError(null);
+
+    if (isSignedIn) {
+      await syncAndGoHome();
+      return;
+    }
+
+    if (signUp.status !== 'complete') {
+      const { error } = await signUp.verifications.verifyEmailCode({ code: code.trim() });
+
+      if (error) {
+        const message = error.message ?? 'Invalid verification code.';
+        if (/already signed in/i.test(message)) {
+          await syncAndGoHome();
+          return;
+        }
+        setFormError(message);
+        if (__DEV__) {
+          console.warn('[sign-up] verifyEmailCode error', error);
+        }
+        return;
+      }
+
+      if (__DEV__) {
+        console.log('[sign-up] after verify', signUpDebugSnapshot(signUp));
+      }
+
+      if (signUp.status === 'missing_requirements') {
+        await resolveMissingRequirements();
+        if (__DEV__) {
+          console.log('[sign-up] after resolve missing', signUpDebugSnapshot(signUp));
+        }
+      }
+    }
+
+    if (signUp.status === 'complete') {
+      await finalizeSignUp();
+      return;
+    }
+
+    const missing = (signUp.missingFields ?? []).join(', ') || 'none';
+    const unverified = (signUp.unverifiedFields ?? []).join(', ') || 'none';
+    setFormError(
+      `Sign up incomplete (${signUp.status}). Missing: ${missing}. Unverified: ${unverified}.`,
+    );
+    if (__DEV__) {
+      console.warn('[sign-up] incomplete after verify', signUpDebugSnapshot(signUp));
+    }
+  };
+
+  // Keep the verify UI mounted while finalize + Neon sync run.
+  // Returning null on status===complete used to race finalize / getToken.
+  if ((signUp.status === 'complete' || isSignedIn) && !isFinishing && !pendingVerification) {
     return null;
   }
 
-  if (needsEmailVerification) {
+  if (pendingVerification) {
     return (
       <AuthScreen>
         <Text className="mb-1 text-[28px] font-semibold text-white">Verify email</Text>
         <Text className="mb-8 text-[15px] text-white/55">
-          Enter the code we sent to your work email
+          Enter the code we sent to {emailAddress || 'your work email'}
         </Text>
+
+        <AuthFormError message={visibleError} />
 
         <AuthField
           label="Verification code"
@@ -82,11 +276,22 @@ export default function SignUpScreen() {
           error={errors.fields.code?.message}
         />
 
-        <AuthPrimaryButton label="Verify" onPress={onVerify} loading={isFetching} />
+        <AuthPrimaryButton
+          label="Verify"
+          onPress={onVerify}
+          loading={isFetching}
+          disabled={!code}
+        />
 
         <Pressable
           className="mt-4 items-center"
-          onPress={() => signUp.verifications.sendEmailCode()}>
+          onPress={async () => {
+            setFormError(null);
+            const { error } = await signUp.verifications.sendEmailCode();
+            if (error) {
+              setFormError(error.message ?? 'Could not resend code.');
+            }
+          }}>
           <Text className="text-[14px] text-white/55">I need a new code</Text>
         </Pressable>
       </AuthScreen>
@@ -97,13 +302,14 @@ export default function SignUpScreen() {
     <AuthScreen
       footer={
         <Text className="text-center text-[12px] leading-5 text-white/40">
-          By continuing you agree to the{' '}
-          <Text className="text-white/70">Terms</Text> and{' '}
+          By continuing you agree to the <Text className="text-white/70">Terms</Text> and{' '}
           <Text className="text-white/70">Privacy Policy</Text>.
         </Text>
       }>
       <Text className="mb-1 text-[28px] font-semibold text-white">Create account</Text>
       <Text className="mb-8 text-[15px] text-white/55">Set up your workspace</Text>
+
+      <AuthFormError message={visibleError} />
 
       <AuthField
         label="Full name"
@@ -113,6 +319,17 @@ export default function SignUpScreen() {
         placeholder="Maxim Onyushko"
         autoComplete="name"
         error={errors.fields.firstName?.message ?? errors.fields.lastName?.message}
+      />
+
+      <AuthField
+        label="Username"
+        icon={AtSign}
+        value={username}
+        onChangeText={setUsername}
+        placeholder="nullxes"
+        autoCapitalize="none"
+        autoComplete="username"
+        error={errors.fields.username?.message}
       />
 
       <AuthField
@@ -142,7 +359,7 @@ export default function SignUpScreen() {
         label="Create account"
         onPress={onCreateAccount}
         loading={isFetching}
-        disabled={!fullName || !emailAddress || !password}
+        disabled={!fullName || !username || !emailAddress || !password}
       />
 
       <Pressable className="mt-6 items-center" onPress={() => router.replace('/sign-in' as Href)}>
@@ -151,7 +368,6 @@ export default function SignUpScreen() {
         </Text>
       </Pressable>
 
-      {/* Required for Clerk bot protection on sign-up */}
       <View nativeID="clerk-captcha" />
     </AuthScreen>
   );
