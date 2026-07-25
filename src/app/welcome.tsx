@@ -1,6 +1,6 @@
 import { useAuth, useClerk } from '@clerk/expo';
-import { type Href, Redirect, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { type Href, useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -26,6 +26,7 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const clearWelcome = useSessionUiStore((s) => s.clearWelcome);
   const lineWidth = useSharedValue(0);
+  const resolvedTasks = useRef(false);
 
   useEffect(() => {
     lineWidth.value = withDelay(
@@ -35,11 +36,19 @@ export default function WelcomeScreen() {
   }, [lineWidth]);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) {
+    if (!isLoaded) {
       return;
     }
+    if (!isSignedIn) {
+      router.replace('/sign-in' as Href);
+      return;
+    }
+    if (resolvedTasks.current) {
+      return;
+    }
+    resolvedTasks.current = true;
     void resolvePendingSessionTasks(clerk, 'welcome');
-  }, [clerk, isLoaded, isSignedIn]);
+  }, [clerk, isLoaded, isSignedIn, router]);
 
   const lineStyle = useAnimatedStyle(() => ({
     width: lineWidth.value,
@@ -50,12 +59,8 @@ export default function WelcomeScreen() {
     router.replace('/(tabs)' as Href);
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !isSignedIn) {
     return <AuthLoading />;
-  }
-
-  if (!isSignedIn) {
-    return <Redirect href={'/sign-in' as Href} />;
   }
 
   return (

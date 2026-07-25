@@ -1,18 +1,18 @@
-import { useAuth } from '@clerk/expo';
-import { Redirect, Tabs, type Href } from 'expo-router';
+import { Tabs } from 'expo-router';
 
 import { HubTabBar } from '@/features/app-shell/components/hub-tab-bar';
 import { AuthLoading } from '@/features/auth/components/auth-loading';
+import { useAuthRedirect } from '@/features/auth/lib/use-auth-redirect';
 
 export default function TabsLayout() {
-  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
+  const { isLoaded, isSignedIn } = useAuthRedirect('signed-out-away');
 
   if (!isLoaded) {
     return <AuthLoading />;
   }
 
   if (!isSignedIn) {
-    return <Redirect href={'/sign-in' as Href} />;
+    return <AuthLoading />;
   }
 
   return (

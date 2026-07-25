@@ -1,18 +1,17 @@
-import { useAuth } from '@clerk/expo';
-import { Redirect, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 
 import { AuthLoading } from '@/features/auth/components/auth-loading';
+import { useAuthRedirect } from '@/features/auth/lib/use-auth-redirect';
 
 export default function AuthLayout() {
-  const { isSignedIn, isLoaded } = useAuth({ treatPendingAsSignedOut: false });
+  const { isLoaded, isSignedIn } = useAuthRedirect('signed-in-away');
 
   if (!isLoaded) {
     return <AuthLoading />;
   }
 
   if (isSignedIn) {
-    // Index gate decides welcome vs tabs.
-    return <Redirect href="/" />;
+    return <AuthLoading />;
   }
 
   return (

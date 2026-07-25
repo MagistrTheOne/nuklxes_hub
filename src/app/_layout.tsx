@@ -25,7 +25,7 @@ export default function RootLayout() {
       publishableKey={publishableKey}
       tokenCache={tokenCache}
       taskUrls={{
-        'choose-organization': '/welcome',
+        // Do not map choose-organization → /welcome (fights app routing).
         'reset-password': '/reset-password',
       }}>
       <StatusBar style="light" />

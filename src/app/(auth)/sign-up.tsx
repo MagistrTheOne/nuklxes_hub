@@ -263,8 +263,8 @@ export default function SignUpScreen() {
   if (pendingVerification) {
     return (
       <AuthScreen>
-        <Text className="mb-1 text-[28px] font-semibold text-white">Verify email</Text>
-        <Text className="mb-8 text-[15px] text-white/55">
+        <Text className="mb-1 text-center text-[28px] font-semibold text-white">Verify email</Text>
+        <Text className="mb-8 text-center text-[15px] text-white/55">
           Enter the code we sent to {emailAddress || 'your work email'}
         </Text>
 
@@ -310,8 +310,8 @@ export default function SignUpScreen() {
           <Text className="text-white/70">Privacy Policy</Text>.
         </Text>
       }>
-      <Text className="mb-1 text-[28px] font-semibold text-white">Create account</Text>
-      <Text className="mb-8 text-[15px] text-white/55">Set up your workspace</Text>
+      <Text className="mb-1 text-center text-[28px] font-semibold text-white">Create account</Text>
+      <Text className="mb-8 text-center text-[15px] text-white/55">Set up your workspace</Text>
 
       <AuthFormError message={visibleError} />
 
