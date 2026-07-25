@@ -34,23 +34,27 @@ export default function SignInScreen() {
 
   const finalize = async () => {
     setIsFinishing(true);
-    const { error } = await finishAuthSession({
-      finalize: (opts) => signIn.finalize(opts),
-      routerReplace: (href) => router.replace(href),
-      options: {
-        getToken,
-        email: emailAddress.trim(),
-        logLabel: 'sign-in',
-        clerk,
-      },
-    });
+    try {
+      const { error } = await finishAuthSession({
+        finalize: (opts) => signIn.finalize(opts),
+        routerReplace: (href) => router.replace(href),
+        options: {
+          getToken,
+          email: emailAddress.trim(),
+          logLabel: 'sign-in',
+          clerk,
+        },
+      });
 
-    if (error) {
-      setIsFinishing(false);
-      setFormError(error.message ?? 'Could not finish sign in.');
-      if (__DEV__) {
-        console.warn('[sign-in] finalize error', error);
+      if (error) {
+        setFormError(error.message ?? 'Could not finish sign in.');
+        if (__DEV__) {
+          console.warn('[sign-in] finalize error', error);
+        }
       }
+    } finally {
+      // Re-enable the form if navigation did not unmount this screen.
+      setIsFinishing(false);
     }
   };
 
@@ -67,11 +71,13 @@ export default function SignInScreen() {
       });
       signIn.reset();
     } catch (error) {
-      setIsFinishing(false);
       if (__DEV__) {
         console.warn('[sign-in] resume failed', error);
       }
       setFormError('Could not continue your session. Try again.');
+    } finally {
+      // Re-enable the form if navigation did not unmount this screen.
+      setIsFinishing(false);
     }
   };
 

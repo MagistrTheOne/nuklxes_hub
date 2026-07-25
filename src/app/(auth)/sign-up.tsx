@@ -76,24 +76,28 @@ export default function SignUpScreen() {
 
   const finalizeSignUp = async () => {
     setIsFinishing(true);
-    const { error } = await finishAuthSession({
-      finalize: (opts) => signUp.finalize(opts),
-      routerReplace: (href) => router.replace(href),
-      options: {
-        getToken,
-        email: emailAddress.trim(),
-        fullName: fullName.trim(),
-        logLabel: 'sign-up',
-        clerk,
-      },
-    });
+    try {
+      const { error } = await finishAuthSession({
+        finalize: (opts) => signUp.finalize(opts),
+        routerReplace: (href) => router.replace(href),
+        options: {
+          getToken,
+          email: emailAddress.trim(),
+          fullName: fullName.trim(),
+          logLabel: 'sign-up',
+          clerk,
+        },
+      });
 
-    if (error) {
-      setIsFinishing(false);
-      setFormError(error.message ?? 'Could not finish sign up.');
-      if (__DEV__) {
-        console.warn('[sign-up] finalize error', error);
+      if (error) {
+        setFormError(error.message ?? 'Could not finish sign up.');
+        if (__DEV__) {
+          console.warn('[sign-up] finalize error', error);
+        }
       }
+    } finally {
+      // Re-enable the form if navigation did not unmount this screen.
+      setIsFinishing(false);
     }
   };
 
@@ -193,14 +197,24 @@ export default function SignUpScreen() {
   const syncAndGoHome = async () => {
     setIsFinishing(true);
     setFormError(null);
-    await resumeExistingAuthSession({
-      clerk,
-      getToken,
-      email: emailAddress.trim(),
-      fullName: fullName.trim(),
-      logLabel: 'sign-up',
-      routerReplace: (href) => router.replace(href),
-    });
+    try {
+      await resumeExistingAuthSession({
+        clerk,
+        getToken,
+        email: emailAddress.trim(),
+        fullName: fullName.trim(),
+        logLabel: 'sign-up',
+        routerReplace: (href) => router.replace(href),
+      });
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[sign-up] resume failed', error);
+      }
+      setFormError('Could not continue your session. Try again.');
+    } finally {
+      // Re-enable the form if navigation did not unmount this screen.
+      setIsFinishing(false);
+    }
   };
 
   const onVerify = async () => {
