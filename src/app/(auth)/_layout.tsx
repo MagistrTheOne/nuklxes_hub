@@ -11,6 +11,7 @@ export default function AuthLayout() {
   }
 
   if (isSignedIn) {
+    // Index gate decides welcome vs tabs.
     return <Redirect href="/" />;
   }
 

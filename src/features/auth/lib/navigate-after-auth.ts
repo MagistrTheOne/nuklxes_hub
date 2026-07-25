@@ -1,5 +1,6 @@
 import type { Href } from 'expo-router';
 
+import { useSessionUiStore } from '@/features/app-shell/store/session-ui';
 import { syncUserAfterAuth } from '@/features/auth/lib/sync-user';
 
 export type AuthNavigateArgs = {
@@ -19,13 +20,16 @@ type FinishAuthOptions = {
   logLabel: string;
 };
 
-export function createAuthNavigate(routerReplace: (href: Href) => void) {
+export function createAuthNavigate(
+  routerReplace: (href: Href) => void,
+  path: string = '/welcome',
+) {
   return ({ session, decorateUrl }: AuthNavigateArgs) => {
     if (session?.currentTask) {
       return;
     }
 
-    const url = decorateUrl('/');
+    const url = decorateUrl(path);
     if (url.startsWith('http')) {
       if (typeof window !== 'undefined') {
         window.location.href = url;
@@ -50,6 +54,9 @@ export async function finishAuthSession(params: {
 }): Promise<{ error: { message?: string } | null }> {
   let navigateArgs: AuthNavigateArgs | null = null;
 
+  // Before finalize: isSignedIn flips true — auth layout must open welcome, not tabs.
+  useSessionUiStore.getState().requestWelcome();
+
   const { error } = await params.finalize({
     navigate: async (args) => {
       navigateArgs = args;
@@ -57,6 +64,7 @@ export async function finishAuthSession(params: {
   });
 
   if (error) {
+    useSessionUiStore.getState().clearWelcome();
     return { error };
   }
 
@@ -68,11 +76,11 @@ export async function finishAuthSession(params: {
     logLabel: params.options.logLabel,
   });
 
-  const navigateAfterAuth = createAuthNavigate(params.routerReplace);
+  const navigateAfterAuth = createAuthNavigate(params.routerReplace, '/welcome');
   if (navigateArgs) {
     navigateAfterAuth(navigateArgs);
   } else {
-    params.routerReplace('/' as Href);
+    params.routerReplace('/welcome' as Href);
   }
 
   return { error: null };

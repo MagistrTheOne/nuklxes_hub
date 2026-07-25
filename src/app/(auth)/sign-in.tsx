@@ -1,4 +1,4 @@
-import { useAuth, useSignIn } from '@clerk/expo';
+import { useAuth, useClerk, useSignIn } from '@clerk/expo';
 import { type Href, Link, useRouter } from 'expo-router';
 import { Lock, Mail } from 'lucide-react-native';
 import { useState } from 'react';
@@ -12,11 +12,12 @@ import {
 import { AuthPrimaryButton } from '@/features/auth/components/auth-primary-button';
 import { AuthScreen } from '@/features/auth/components/auth-screen';
 import { finishAuthSession } from '@/features/auth/lib/navigate-after-auth';
-import { syncUserAfterAuth } from '@/features/auth/lib/sync-user';
+import { resumeExistingAuthSession } from '@/features/auth/lib/resume-session';
 
 export default function SignInScreen() {
   const { signIn, errors, fetchStatus } = useSignIn();
   const { isSignedIn, getToken } = useAuth();
+  const clerk = useClerk();
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = useState('');
@@ -51,12 +52,14 @@ export default function SignInScreen() {
 
   const syncAndGoHome = async () => {
     setIsFinishing(true);
-    await syncUserAfterAuth({
+    setFormError(null);
+    await resumeExistingAuthSession({
+      clerk,
       getToken,
       email: emailAddress.trim(),
       logLabel: 'sign-in',
+      routerReplace: (href) => router.replace(href),
     });
-    router.replace('/' as Href);
   };
 
   const onSignIn = async () => {

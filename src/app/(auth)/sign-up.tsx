@@ -1,4 +1,4 @@
-import { useAuth, useSignUp } from '@clerk/expo';
+import { useAuth, useClerk, useSignUp } from '@clerk/expo';
 import { type Href, useRouter } from 'expo-router';
 import { AtSign, Lock, Mail, User } from 'lucide-react-native';
 import { useState } from 'react';
@@ -12,7 +12,7 @@ import {
 import { AuthPrimaryButton } from '@/features/auth/components/auth-primary-button';
 import { AuthScreen } from '@/features/auth/components/auth-screen';
 import { finishAuthSession } from '@/features/auth/lib/navigate-after-auth';
-import { syncUserAfterAuth } from '@/features/auth/lib/sync-user';
+import { resumeExistingAuthSession } from '@/features/auth/lib/resume-session';
 
 function splitFullName(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
@@ -58,6 +58,7 @@ function signUpDebugSnapshot(signUp: {
 export default function SignUpScreen() {
   const { signUp, errors, fetchStatus } = useSignUp();
   const { isSignedIn, getToken } = useAuth();
+  const clerk = useClerk();
   const router = useRouter();
 
   const [fullName, setFullName] = useState('');
@@ -190,13 +191,15 @@ export default function SignUpScreen() {
 
   const syncAndGoHome = async () => {
     setIsFinishing(true);
-    await syncUserAfterAuth({
+    setFormError(null);
+    await resumeExistingAuthSession({
+      clerk,
       getToken,
       email: emailAddress.trim(),
       fullName: fullName.trim(),
       logLabel: 'sign-up',
+      routerReplace: (href) => router.replace(href),
     });
-    router.replace('/' as Href);
   };
 
   const onVerify = async () => {

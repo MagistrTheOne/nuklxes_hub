@@ -1,5 +1,10 @@
+import { config as loadEnv } from 'dotenv';
+
 import { verifyClerkBearerToken } from '@/server/clerk-jwt';
 import { upsertUserFromClerk } from '@/server/users';
+
+// Expo server bundles may not inherit shell env; load .env for DATABASE_URL / JWKS.
+loadEnv({ path: '.env', quiet: true });
 
 type MeBody = {
   email?: string;
