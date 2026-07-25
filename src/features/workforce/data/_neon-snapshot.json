@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-07-25T21:58:13.119Z",
+  "syncedAt": "2026-07-25T22:28:47.376Z",
   "org": {
     "id": "58eaf337-1081-4402-9abe-c3d28d51dda6",
     "name": "NULLXES",
@@ -11,7 +11,12 @@
     "ANAM_API_KEY_15",
     "ANAM_API_KEY_2",
     "ANAM_API_KEY_3",
-    "ANAM_API_KEY_6"
+    "ANAM_API_KEY_4",
+    "ANAM_API_KEY_5",
+    "ANAM_API_KEY_6",
+    "ANAM_API_KEY_7",
+    "ANAM_API_KEY_8",
+    "ANAM_API_KEY_9"
   ],
   "defaultEmployeeId": "a8a5fb9e-4c84-489f-9097-8245349b4348",
   "employees": [
@@ -57,7 +62,7 @@
       "personaId": "653e200a-f937-4541-a33b-dabc01f218c5",
       "anamSlot": "ANAM_API_KEY_5",
       "previewUrl": "https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/HF_scAdfTClWEcWybNeAIv1jSolKa1tV/one-shot_HF_scAdfTClWEcWybNeAIv1jSolKa1tV_akane-tsukiyama1782590009557-cropped-jYLNbJcqBK5yflw1CAi4xxJmvvmmQh.png",
-      "anamReady": false,
+      "anamReady": true,
       "organizationId": "58eaf337-1081-4402-9abe-c3d28d51dda6",
       "voiceMode": "elevenlabs",
       "voiceId": "Xb7hH8MSUJpSbSDYk0k2",
@@ -73,7 +78,7 @@
       "personaId": "96869f7a-8ee8-45ca-81f3-40adbddc777f",
       "anamSlot": "ANAM_API_KEY_9",
       "previewUrl": "https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/Y5BH0i3qonbSOYMVRsrm-1vEuzJBKCom/one-shot_Y5BH0i3qonbSOYMVRsrm-1vEuzJBKCom_evgenia-emelyanova1783038573320-cropped-KTHngQQdDpk3JhjRMR0QMh569dK12h.png",
-      "anamReady": false,
+      "anamReady": true,
       "organizationId": "58eaf337-1081-4402-9abe-c3d28d51dda6",
       "voiceMode": "elevenlabs",
       "voiceId": "Xb7hH8MSUJpSbSDYk0k2",
@@ -105,7 +110,7 @@
       "personaId": "da9e34e6-f601-4b97-a5ba-b98af2e63dfc",
       "anamSlot": "ANAM_API_KEY_4",
       "previewUrl": "https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/XSeVksE0pMaCCRLLJP2CyiIto8npb5Jk/one-shot_XSeVksE0pMaCCRLLJP2CyiIto8npb5Jk_megan-nullxes1782587787279-cropped-7MfnZ4ebDA4K9YRQ3sNSuKKw8tU2ra.png",
-      "anamReady": false,
+      "anamReady": true,
       "organizationId": "58eaf337-1081-4402-9abe-c3d28d51dda6",
       "voiceMode": "elevenlabs",
       "voiceId": "Xb7hH8MSUJpSbSDYk0k2",

@@ -2,7 +2,9 @@ import type { AnamSlot } from '@/features/workforce/types';
 import { isAnamSlot, resolveAnamApiKey } from '@/server/anam-key';
 import { resolveEmployeeSession } from '@/server/anam-slots';
 
-const ANAM_API_BASE = 'https://api.anam.ai/v1';
+const ANAM_API_BASE = (
+  process.env.ANAM_API_BASE_URL?.trim() || 'https://api.anam.ai/v1'
+).replace(/\/$/, '');
 
 export type AnamEphemeralPersonaConfig = {
   name: string;
