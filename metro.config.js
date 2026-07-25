@@ -48,6 +48,18 @@ withApiRouteFix.resolver.resolveRequest = (context, moduleName, platform) => {
     return apiRoute;
   }
 
+  // @anam-ai/js-sdk "module" build uses extensionless ESM re-exports
+  // (e.g. './DataChannelMessage') that Metro cannot resolve. Force CJS.
+  if (moduleName === "@anam-ai/js-sdk") {
+    return {
+      type: "sourceFile",
+      filePath: path.resolve(
+        __dirname,
+        "node_modules/@anam-ai/js-sdk/dist/main/index.js",
+      ),
+    };
+  }
+
   if (upstreamResolveRequest) {
     return upstreamResolveRequest(context, moduleName, platform);
   }
