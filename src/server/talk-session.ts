@@ -8,7 +8,7 @@ import { getReadyFallbackEmployee } from '@/features/workforce/data/employees';
 /**
  * Bootstrap Talk like dplatform startTalkSessionAction:
  * { sessionId, sessionToken (Anam), voiceMode }.
- * Brain-stream + PCM→Anam mouth attach on the client next.
+ * Brain-stream: POST /api/v1/talk/brain-stream. PCM→Anam mouth attaches on the client next.
  */
 export async function bootstrapTalkSession(employeeId: string): Promise<TalkBootstrap> {
   let employee = null as Awaited<ReturnType<typeof getPlatformEmployee>>;

@@ -96,3 +96,13 @@ Every decision must increase perceived product quality.
 
 NULLXES -Платформа по управлению персональными цифровыми ассистентами на базе ИИ которые способны взаимодействовать с человеком в реальном времени.
 Goal: цель платформы дать возможность пользователю ощущить взаимодействия между ИИ и человеком и компанией NULLXES.
+
+## Platform bridge (обязательно читать перед Talk/Live/Chat)
+
+Стыковка / план: `docs/AGENT_PLATFORM_BRIDGE.md`
+
+- Shared with web = только Neon (workforce/avatars). Мозг/Talk/Chat — в Hub.
+- Auth = **Clerk only**. Better Auth не используем.
+- Anam = лицо. Hub `brain-stream` = мозг. ElevenLabs = голос → рот Anam (уже).
+- Stream Chat = да (sync истории) + **свои кнопки/UI**. Stream Video = нет.
+- xAI Adeline = отдельный Grok Voice (`/xai-adeline`), не Anam Talk.

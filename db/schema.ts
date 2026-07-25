@@ -1,8 +1,10 @@
 import {
   boolean,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
+  real,
   text,
   timestamp,
   uuid,
@@ -21,6 +23,14 @@ export const employeeStatusEnum = pgEnum('employee_status', [
 ]);
 
 export const avatarProviderEnum = pgEnum('avatar_provider', ['anam', 'nullxes', 'custom']);
+
+export const brainProviderEnum = pgEnum('brain_provider', [
+  'openai',
+  'anthropic',
+  'google',
+  'nullxes',
+  'xai',
+]);
 
 export const providerConfigTypeEnum = pgEnum('provider_config_type', [
   'avatar',
@@ -61,6 +71,22 @@ export const digitalEmployee = pgTable('digital_employee', {
   department: text('department'),
   status: employeeStatusEnum('status').notNull().default('draft'),
   avatarProvider: avatarProviderEnum('avatar_provider').notNull(),
+  brainProvider: brainProviderEnum('brain_provider').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Per-employee inference settings (system prompt, temp, provider). */
+export const employeeRuntime = pgTable('employee_runtime', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  employeeId: uuid('employee_id').notNull(),
+  brainProvider: brainProviderEnum('brain_provider').notNull(),
+  avatarProvider: avatarProviderEnum('avatar_provider').notNull(),
+  systemPrompt: text('system_prompt').notNull(),
+  temperature: real('temperature').notNull().default(0.7),
+  maxTokens: integer('max_tokens').notNull().default(4096),
+  sessionLimitSeconds: integer('session_limit_seconds').notNull().default(3600),
+  isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -88,14 +114,26 @@ export type SessionProviderConfig = {
   [key: string]: unknown;
 };
 
+export type BrainProviderConfig = {
+  model?: string;
+  temperature?: number;
+  provisioningStatus?: string;
+  providerResourceId?: string;
+  providerMetadata?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
 export const employeeProviderConfig = pgTable('employee_provider_config', {
   id: uuid('id').primaryKey().defaultRandom(),
   employeeId: uuid('employee_id').notNull(),
   providerType: providerConfigTypeEnum('provider_type').notNull(),
   providerId: text('provider_id').notNull(),
-  config: jsonb('config').$type<AnamAvatarProviderConfig | SessionProviderConfig>().notNull(),
+  config: jsonb('config').$type<
+    AnamAvatarProviderConfig | SessionProviderConfig | BrainProviderConfig
+  >().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type PlatformUser = typeof user.$inferSelect;
+export type BrainProvider = (typeof brainProviderEnum.enumValues)[number];

@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { requestTalkSession } from '@/features/talk';
+import { ADELINE_KALEN_EMPLOYEE_ID } from '@/features/xai-voice';
 import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
 import { useEmployee } from '@/features/workforce/hooks/use-employees';
 
@@ -132,6 +133,15 @@ export default function EmployeeScreen() {
             <Video size={18} color="#FFFFFF" />
             <Text className="ml-2 text-[16px] font-semibold text-white">Live</Text>
           </Pressable>
+
+          {employee.id === ADELINE_KALEN_EMPLOYEE_ID ? (
+            <Pressable
+              onPress={() => router.push('/xai-adeline' as Href)}
+              className="mt-3 h-14 items-center justify-center rounded-2xl border border-white/15 bg-[#0B0B0B] active:opacity-80">
+              <Text className="text-[16px] font-semibold text-white">Grok Voice</Text>
+              <Text className="mt-0.5 text-[12px] text-white/40">xAI · not Anam</Text>
+            </Pressable>
+          ) : null}
 
           <Text className="mb-3 mt-8 text-[12px] font-semibold tracking-[1.5px] text-white/35">
             ANAM

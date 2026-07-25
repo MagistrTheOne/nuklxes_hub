@@ -1,15 +1,30 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PersonaStage } from '@/features/anam/components/persona-stage';
 import { usePersonaSession } from '@/features/anam/hooks/use-persona-session';
+import type { TalkVoiceMode } from '@/features/talk';
 import { DEFAULT_EMPLOYEE_ID } from '@/features/workforce/data/employees';
 import { useEmployees } from '@/features/workforce/hooks/use-employees';
 
+function resolveVoiceMode(
+  talkVoiceMode: string | undefined,
+  employeeMode: TalkVoiceMode | undefined,
+): TalkVoiceMode {
+  if (talkVoiceMode === 'anam' || talkVoiceMode === 'elevenlabs') {
+    return talkVoiceMode;
+  }
+  return employeeMode ?? 'elevenlabs';
+}
+
 export default function LiveScreen() {
-  const { employeeId: paramId, voiceMode: talkVoiceMode } = useLocalSearchParams<{
+  const {
+    employeeId: paramId,
+    talkSessionId,
+    voiceMode: talkVoiceMode,
+  } = useLocalSearchParams<{
     employeeId?: string;
     talkSessionId?: string;
     voiceMode?: string;
@@ -24,6 +39,7 @@ export default function LiveScreen() {
   };
 
   const [selectedId, setSelectedId] = useState(() => resolveId(paramId));
+  const [draft, setDraft] = useState('');
 
   const readyIds = ready.map((e) => e.id).join(',');
 
@@ -35,9 +51,35 @@ export default function LiveScreen() {
     () => employees.find((e) => e.id === selectedId) ?? null,
     [employees, selectedId],
   );
-  const { status, error, start, stop, isWeb } = usePersonaSession({
+
+  const voiceMode = resolveVoiceMode(
+    typeof talkVoiceMode === 'string' ? talkVoiceMode : undefined,
+    employee?.voiceMode,
+  );
+
+  const {
+    status,
+    pipelineState,
+    error,
+    start,
+    stop,
+    sendText,
+    isWeb,
+    isNativeBridge,
+    bridgeRef,
+    onBridgeMessage,
+  } = usePersonaSession({
     employeeId: selectedId,
+    talkSessionId: typeof talkSessionId === 'string' ? talkSessionId : undefined,
+    voiceMode,
+    voiceId: employee?.voiceId,
+    enableTalkPipeline: true,
   });
+
+  const onSend = () => {
+    if (status !== 'connected') return;
+    if (sendText(draft)) setDraft('');
+  };
 
   return (
     <View className="flex-1 bg-[#050505]">
@@ -45,8 +87,8 @@ export default function LiveScreen() {
         <View className="px-5">
           <Text className="pt-2 text-[28px] font-semibold text-white">Live</Text>
           <Text className="mt-2 text-[15px] leading-6 text-white/45">
-            {employee?.name ?? 'Persona'} · Anam
-            {` · voice=${typeof talkVoiceMode === 'string' ? talkVoiceMode : employee?.voiceMode ?? 'anam'}`}
+            {employee?.name ?? 'Persona'} · Anam · {voiceMode}
+            {pipelineState !== 'idle' ? ` · ${pipelineState}` : ''}
           </Text>
         </View>
 
@@ -78,21 +120,29 @@ export default function LiveScreen() {
           })}
         </ScrollView>
 
-        <View className="mt-5 px-5">
-          <View className="overflow-hidden rounded-3xl border border-white/10">
-            <PersonaStage />
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="px-5 pb-8"
+          keyboardShouldPersistTaps="handled">
+          <View className="mt-5 overflow-hidden rounded-3xl border border-white/10">
+            {isNativeBridge ? (
+              <PersonaStage ref={bridgeRef} onBridgeMessage={onBridgeMessage} />
+            ) : (
+              <PersonaStage />
+            )}
           </View>
 
           <Text className="mt-4 text-[13px] text-white/40">
             Status: {status}
-            {Platform.OS !== 'web' ? ' · native bridge pending' : ''}
+            {isNativeBridge ? ' · WebView bridge' : ''}
+            {status === 'connected' ? ` · pipeline ${pipelineState}` : ''}
           </Text>
           {error ? <Text className="mt-2 text-[13px] text-red-400">{error}</Text> : null}
 
           <View className="mt-6 flex-row gap-3">
             <Pressable
               onPress={() => void start()}
-              disabled={!isWeb || status === 'minting' || status === 'connecting'}
+              disabled={status === 'minting' || status === 'connecting'}
               className="h-12 flex-1 items-center justify-center rounded-2xl bg-white active:opacity-90 disabled:opacity-40">
               <Text className="text-[15px] font-semibold text-[#050505]">
                 {status === 'connected' ? 'Restart' : 'Start session'}
@@ -105,7 +155,41 @@ export default function LiveScreen() {
               <Text className="text-[15px] font-semibold text-white">Stop</Text>
             </Pressable>
           </View>
-        </View>
+
+          <View className="mt-5 flex-row items-end gap-2">
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              editable={status === 'connected' && pipelineState === 'idle'}
+              placeholder={
+                status === 'connected'
+                  ? 'Say something…'
+                  : 'Start session to talk'
+              }
+              placeholderTextColor="rgba(255,255,255,0.28)"
+              multiline
+              className="min-h-12 max-h-28 flex-1 rounded-2xl border border-white/12 bg-white/[0.03] px-4 py-3 text-[15px] text-white"
+              onSubmitEditing={onSend}
+              blurOnSubmit={false}
+            />
+            <Pressable
+              onPress={onSend}
+              disabled={
+                status !== 'connected' ||
+                pipelineState !== 'idle' ||
+                !draft.trim()
+              }
+              className="h-12 items-center justify-center rounded-2xl bg-white px-4 active:opacity-90 disabled:opacity-35">
+              <Text className="text-[14px] font-semibold text-[#050505]">Send</Text>
+            </Pressable>
+          </View>
+
+          <Text className="mt-3 text-[12px] leading-5 text-white/30">
+            Speech or text → Hub brain →{' '}
+            {voiceMode === 'elevenlabs' ? 'ElevenLabs PCM → Anam mouth' : 'Anam TTS'}
+            {isNativeBridge ? ' · Android via WebView' : isWeb ? ' · web SDK' : ''}.
+          </Text>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );

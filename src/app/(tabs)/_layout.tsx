@@ -27,7 +27,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="live" options={{ title: 'Live' }} />
       <Tabs.Screen name="voice" options={{ title: 'Voice' }} />
       <Tabs.Screen name="talk" options={{ title: 'Talk' }} />
-      <Tabs.Screen name="activity" options={{ title: 'Activity' }} />
+      <Tabs.Screen name="chat" options={{ title: 'Chat' }} />
+      <Tabs.Screen name="activity" options={{ href: null, title: 'Activity' }} />
     </Tabs>
   );
 }

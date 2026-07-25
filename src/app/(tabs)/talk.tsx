@@ -10,13 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ADELINE_KALEN_EMPLOYEE_ID } from '@/features/xai-voice';
 import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
 import { useEmployees } from '@/features/workforce/hooks/use-employees';
 import { requestTalkSession } from '@/features/talk';
 
 /**
- * Talk bootstrap → Anam sessionToken + voiceMode.
- * Brain-stream + EL PCM→Anam mouth attach in a later iteration.
+ * Talk bootstrap → Live with Anam face.
+ * Adeline also has a separate xAI Grok Voice sheet (not Anam).
  */
 export default function TalkScreen() {
   const { getToken } = useAuth();
@@ -46,17 +47,27 @@ export default function TalkScreen() {
       <SafeAreaView className="flex-1 px-5" edges={['top']}>
         <Text className="pt-2 text-[28px] font-semibold text-white">Talk</Text>
         <Text className="mt-2 text-[15px] leading-6 text-white/45">
-          Anam face + voiceMode from platform. Brain-stream next.
+          Anam face + Hub brain + ElevenLabs mouth
         </Text>
         <Text className="mt-1 text-[13px] text-white/30">
-          Not ElevenLabs Agents · EL only as PCM into Anam mouth
+          Adeline also has a separate xAI Grok Voice call
         </Text>
 
         {error ? <Text className="mt-4 text-[13px] text-red-400">{error}</Text> : null}
 
-        <ScrollView className="mt-6 flex-1" contentContainerClassName="pb-10">
+        <Pressable
+          onPress={() => router.push('/xai-adeline' as Href)}
+          className="mt-5 rounded-2xl border border-white/12 bg-[#0B0B0B] px-4 py-3.5 active:opacity-80">
+          <Text className="text-[15px] font-medium text-white">Adeline · Grok Voice</Text>
+          <Text className="mt-1 text-[13px] text-white/40">
+            xAI realtime · not Anam · web audio
+          </Text>
+        </Pressable>
+
+        <ScrollView className="mt-5 flex-1" contentContainerClassName="pb-10">
           {ready.map((employee) => {
             const loading = loadingId === employee.id;
+            const isAdeline = employee.id === ADELINE_KALEN_EMPLOYEE_ID;
             return (
               <Pressable
                 key={employee.id}
@@ -67,8 +78,8 @@ export default function TalkScreen() {
                 <View className="ml-3.5 flex-1">
                   <Text className="text-[16px] font-medium text-white">{employee.name}</Text>
                   <Text className="mt-0.5 text-[13px] text-white/45">
-                    voiceMode={employee.voiceMode}
-                    {employee.voiceId ? ` · ${employee.voiceId.slice(0, 8)}…` : ''}
+                    Anam Talk · {employee.voiceMode}
+                    {isAdeline ? ' · + Grok Voice sheet' : ''}
                   </Text>
                 </View>
                 {loading ? (

@@ -2,6 +2,8 @@ import { ANAM_VIDEO_ELEMENT_ID } from '@/features/anam/constants';
 
 type PersonaStageProps = {
   className?: string;
+  // Native-only props accepted as no-ops for shared call sites.
+  onBridgeMessage?: unknown;
 };
 
 /** DOM video target for @anam-ai/js-sdk streamToVideoElement. */

@@ -1,4 +1,10 @@
-import { Activity, Crosshair, LayoutGrid, MessageSquare, Mic } from 'lucide-react-native';
+import {
+  Crosshair,
+  LayoutGrid,
+  MessageCircle,
+  MessageSquare,
+  Mic,
+} from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,7 +13,7 @@ type HubTabBarProps = {
     index: number;
     routes: { key: string; name: string; params?: object }[];
   };
-  descriptors: Record<string, { options: { title?: string } }>;
+  descriptors: Record<string, { options: { title?: string; href?: string | null } }>;
   navigation: {
     emit: (event: {
       type: 'tabPress';
@@ -23,18 +29,22 @@ const ICONS = {
   live: Crosshair,
   voice: Mic,
   talk: MessageSquare,
-  activity: Activity,
+  chat: MessageCircle,
 } as const;
+
+const HIDDEN_TABS = new Set(['activity']);
 
 export function HubTabBar({ state, descriptors, navigation }: HubTabBarProps) {
   const insets = useSafeAreaInsets();
+  const visibleRoutes = state.routes.filter((route) => !HIDDEN_TABS.has(route.name));
 
   return (
     <View
       className="border-t border-white/10 bg-[#050505] px-4 pt-2"
       style={{ paddingBottom: Math.max(insets.bottom, 10) }}>
       <View className="h-16 flex-row items-end justify-between">
-        {state.routes.map((route, index) => {
+        {visibleRoutes.map((route) => {
+          const index = state.routes.findIndex((item) => item.key === route.key);
           const focused = state.index === index;
           const { options } = descriptors[route.key];
           const Icon = ICONS[route.name as keyof typeof ICONS] ?? LayoutGrid;
