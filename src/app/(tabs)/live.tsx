@@ -5,27 +5,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PersonaStage } from '@/features/anam/components/persona-stage';
 import { usePersonaSession } from '@/features/anam/hooks/use-persona-session';
-import {
-  DEFAULT_EMPLOYEE_ID,
-  DIGITAL_EMPLOYEES,
-  getEmployee,
-} from '@/features/workforce/data/employees';
-
-function resolveEmployeeId(paramId?: string) {
-  return typeof paramId === 'string' && getEmployee(paramId)?.anamReady
-    ? paramId
-    : DEFAULT_EMPLOYEE_ID;
-}
+import { DEFAULT_EMPLOYEE_ID } from '@/features/workforce/data/employees';
+import { useEmployees } from '@/features/workforce/hooks/use-employees';
 
 export default function LiveScreen() {
   const { employeeId: paramId } = useLocalSearchParams<{ employeeId?: string }>();
-  const [selectedId, setSelectedId] = useState(() => resolveEmployeeId(paramId));
+  const { data: employees = [] } = useEmployees();
+  const ready = useMemo(() => employees.filter((e) => e.anamReady), [employees]);
+
+  const resolveId = (id?: string) => {
+    if (typeof id === 'string' && ready.some((e) => e.id === id)) return id;
+    if (ready.some((e) => e.id === DEFAULT_EMPLOYEE_ID)) return DEFAULT_EMPLOYEE_ID;
+    return ready[0]?.id ?? DEFAULT_EMPLOYEE_ID;
+  };
+
+  const [selectedId, setSelectedId] = useState(() => resolveId(paramId));
+
+  const readyIds = ready.map((e) => e.id).join(',');
 
   useEffect(() => {
-    setSelectedId(resolveEmployeeId(paramId));
-  }, [paramId]);
+    setSelectedId(resolveId(paramId));
+  }, [paramId, readyIds]);
 
-  const employee = useMemo(() => getEmployee(selectedId), [selectedId]);
+  const employee = useMemo(
+    () => employees.find((e) => e.id === selectedId) ?? null,
+    [employees, selectedId],
+  );
   const { status, error, start, stop, isWeb } = usePersonaSession({
     employeeId: selectedId,
   });
@@ -36,7 +41,7 @@ export default function LiveScreen() {
         <View className="px-5">
           <Text className="pt-2 text-[28px] font-semibold text-white">Live</Text>
           <Text className="mt-2 text-[15px] leading-6 text-white/45">
-            {employee?.name ?? 'Persona'} · slot {employee?.anamSlot ?? '—'}
+            {employee?.name ?? 'Persona'} · {employee?.anamSlot ?? '—'}
           </Text>
         </View>
 
@@ -45,7 +50,7 @@ export default function LiveScreen() {
           showsHorizontalScrollIndicator={false}
           className="mt-4 max-h-11"
           contentContainerClassName="gap-2 px-5">
-          {DIGITAL_EMPLOYEES.filter((e) => e.anamReady).map((item) => {
+          {ready.map((item) => {
             const active = item.id === selectedId;
             return (
               <Pressable

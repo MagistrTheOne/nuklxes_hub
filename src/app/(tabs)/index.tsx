@@ -1,17 +1,20 @@
 import { useClerk, useUser } from '@clerk/expo';
 import { type Href, useRouter } from 'expo-router';
 import { Bell } from 'lucide-react-native';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
-import { DIGITAL_EMPLOYEES, WORKFORCE_STATS } from '@/features/workforce/data/employees';
+import { useEmployees } from '@/features/workforce/hooks/use-employees';
 
 export default function WorkforceScreen() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
+  const { data: employees = [], isFetching, isError } = useEmployees();
   const initial = (user?.firstName?.[0] ?? user?.username?.[0] ?? 'N').toUpperCase();
+  const activeCount = employees.filter((e) => e.status === 'active').length;
+  const liveReady = employees.filter((e) => e.anamReady).length;
 
   return (
     <View className="flex-1 bg-[#050505]">
@@ -35,9 +38,9 @@ export default function WorkforceScreen() {
           <View className="mb-5 flex-row gap-2.5">
             {(
               [
-                [`${WORKFORCE_STATS.active} active`, 'active'],
-                [`${WORKFORCE_STATS.live} live`, 'live'],
-                [`${WORKFORCE_STATS.sessions} sessions`, 'sessions'],
+                [`${activeCount} active`, 'active'],
+                [`${liveReady} live`, 'live'],
+                [`${employees.length} total`, 'sessions'],
               ] as const
             ).map(([label, key]) => (
               <View
@@ -48,27 +51,34 @@ export default function WorkforceScreen() {
             ))}
           </View>
 
-          {DIGITAL_EMPLOYEES.map((employee) => (
+          {employees.map((employee) => (
             <Pressable
               key={employee.id}
               onPress={() => router.push(`/employee/${employee.id}` as Href)}
               className="mb-2.5 flex-row items-center rounded-2xl border border-white/10 bg-[#0B0B0B] px-3.5 py-3 active:opacity-80">
-              <EmployeeAvatar initials={employee.initials} />
+              <EmployeeAvatar initials={employee.initials} previewUrl={employee.previewUrl} />
               <View className="ml-3.5 flex-1">
                 <Text className="text-[16px] font-medium text-white">{employee.name}</Text>
-                <Text className="mt-0.5 text-[13px] text-white/45">{employee.role}</Text>
+                <Text className="mt-0.5 text-[13px] text-white/45" numberOfLines={1}>
+                  {employee.role}
+                </Text>
               </View>
               <View
                 className={`h-2.5 w-2.5 rounded-full ${
-                  employee.status === 'active' ? 'bg-[#34C759]' : 'bg-white/20'
+                  employee.anamReady ? 'bg-[#34C759]' : 'bg-white/20'
                 }`}
               />
             </Pressable>
           ))}
 
-          <Text className="mt-4 text-center text-[12px] text-white/30">
-            Anam Lab · 5 ready · Akane / Evgenia / Megan pending
-          </Text>
+          <View className="mt-4 flex-row items-center justify-center gap-2">
+            {isFetching ? <ActivityIndicator color="rgba(255,255,255,0.35)" /> : null}
+            <Text className="text-center text-[12px] text-white/30">
+              {isError
+                ? 'Platform sync unavailable · showing snapshot'
+                : 'Synced from NULLXES platform · Anam Lab'}
+            </Text>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </View>

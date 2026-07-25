@@ -1,5 +1,5 @@
 import type { AnamPersonaConfig, AnamSessionTokenResponse } from '@/features/anam/types';
-import type { AnamSlot } from '@/features/workforce/data/employees';
+import type { AnamSlot } from '@/features/workforce/types';
 
 type GetToken = (options?: { skipCache?: boolean }) => Promise<string | null>;
 

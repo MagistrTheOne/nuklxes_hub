@@ -1,5 +1,6 @@
-import { isAnamSlot, resolveAnamApiKey, resolveEmployeeSession } from '@/server/anam-slots';
-import type { AnamSlot } from '@/features/workforce/data/employees';
+import type { AnamSlot } from '@/features/workforce/types';
+import { isAnamSlot, resolveAnamApiKey } from '@/server/anam-key';
+import { resolveEmployeeSession } from '@/server/anam-slots';
 
 const ANAM_API_BASE = 'https://api.anam.ai/v1';
 
@@ -77,7 +78,7 @@ export type MintAnamSessionInput = {
  */
 export async function mintAnamSession(input: MintAnamSessionInput) {
   if (input.employeeId) {
-    const resolved = resolveEmployeeSession(input.employeeId);
+    const resolved = await resolveEmployeeSession(input.employeeId);
     return createAnamSessionToken({
       personaConfig: resolved.personaConfig,
       anamSlot: resolved.anamSlot,
@@ -97,4 +98,5 @@ export async function mintAnamSession(input: MintAnamSessionInput) {
   });
 }
 
-export { isAnamSlot, resolveAnamApiKey, resolveEmployeeSession };
+export { isAnamSlot, resolveAnamApiKey } from '@/server/anam-key';
+export { resolveEmployeeSession } from '@/server/anam-slots';

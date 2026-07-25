@@ -7,6 +7,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { AppQueryProvider } from '@/lib/query-client';
+
 SplashScreen.preventAutoHideAsync();
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
@@ -28,19 +30,21 @@ export default function RootLayout() {
         // Do not map choose-organization → /welcome (fights app routing).
         'reset-password': '/reset-password',
       }}>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#050505' },
-          animation: 'fade',
-        }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="welcome" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="employee/[id]" />
-      </Stack>
+      <AppQueryProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#050505' },
+            animation: 'fade',
+          }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="welcome" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="employee/[id]" />
+        </Stack>
+      </AppQueryProvider>
     </ClerkProvider>
   );
 }

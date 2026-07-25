@@ -6,10 +6,8 @@ import { requestAnamSessionToken } from '@/features/anam/api/request-session-tok
 import type { AnamStreamClient } from '@/features/anam/client/types';
 import { ANAM_VIDEO_ELEMENT_ID } from '@/features/anam/constants';
 import type { AnamPersonaConfig, PersonaSessionStatus } from '@/features/anam/types';
-import {
-  DEFAULT_EMPLOYEE_ID,
-  type AnamSlot,
-} from '@/features/workforce/data/employees';
+import { DEFAULT_EMPLOYEE_ID } from '@/features/workforce/data/employees';
+import type { AnamSlot } from '@/features/workforce/types';
 
 export type UsePersonaSessionOptions = {
   employeeId?: string;

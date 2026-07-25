@@ -1,15 +1,23 @@
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, MessageSquare, Video } from 'lucide-react-native';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
-import { getEmployee } from '@/features/workforce/data/employees';
+import { useEmployee } from '@/features/workforce/hooks/use-employees';
 
 export default function EmployeeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const employee = getEmployee(id ?? '');
+  const { data: employee, isLoading } = useEmployee(id ?? '');
+
+  if (isLoading && !employee) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#050505]">
+        <ActivityIndicator color="#FFFFFF" />
+      </View>
+    );
+  }
 
   if (!employee) {
     return (
@@ -36,22 +44,31 @@ export default function EmployeeScreen() {
 
         <ScrollView className="flex-1 px-5" contentContainerClassName="pb-10">
           <View className="overflow-hidden rounded-3xl border border-white/10 bg-[#0B0B0B]">
-            <EmployeeAvatar initials={employee.initials} size="lg" />
+            <EmployeeAvatar
+              initials={employee.initials}
+              previewUrl={employee.previewUrl}
+              size="lg"
+            />
             <View className="px-4 pb-4 pt-3">
               <Text className="text-[22px] font-semibold text-white">{employee.name}</Text>
               <View className="mt-1.5 flex-row items-center">
-                <Text className="text-[14px] text-white/50">{employee.role}</Text>
-                <Text className="mx-2 text-white/25">·</Text>
+                <Text className="flex-1 text-[14px] text-white/50" numberOfLines={2}>
+                  {employee.role}
+                </Text>
+              </View>
+              <View className="mt-2 flex-row items-center">
                 <View
                   className={`mr-1.5 h-2 w-2 rounded-full ${
-                    employee.status === 'active' ? 'bg-[#34C759]' : 'bg-white/25'
+                    employee.anamReady ? 'bg-[#34C759]' : 'bg-white/25'
                   }`}
                 />
                 <Text className="text-[14px] text-white/50">
-                  {employee.anamReady ? 'live ready' : 'pending'}
+                  {employee.anamReady ? 'live ready' : 'slot pending'}
                 </Text>
               </View>
-              <Text className="mt-2 text-[12px] text-white/30">{employee.anamSlot}</Text>
+              {employee.anamSlot ? (
+                <Text className="mt-2 text-[12px] text-white/30">{employee.anamSlot}</Text>
+              ) : null}
             </View>
           </View>
 
@@ -80,11 +97,11 @@ export default function EmployeeScreen() {
           </Text>
           <View className="mb-4 border-b border-white/10 pb-4">
             <Text className="text-[13px] text-white/40">personaId</Text>
-            <Text className="mt-1 text-[13px] text-white/70">{employee.personaId}</Text>
+            <Text className="mt-1 text-[13px] text-white/70">{employee.personaId ?? '—'}</Text>
           </View>
           <View className="border-b border-white/10 pb-4">
             <Text className="text-[13px] text-white/40">avatarId</Text>
-            <Text className="mt-1 text-[13px] text-white/70">{employee.avatarId}</Text>
+            <Text className="mt-1 text-[13px] text-white/70">{employee.avatarId ?? '—'}</Text>
           </View>
         </ScrollView>
       </SafeAreaView>
