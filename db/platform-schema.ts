@@ -49,12 +49,20 @@ export type AnamAvatarProviderConfig = {
   [key: string]: unknown;
 };
 
+/** employee_provider_config where provider_type = session */
+export type SessionProviderConfig = {
+  voiceId?: string;
+  studioVoiceId?: string;
+  voiceProvider?: 'elevenlabs' | 'anam' | string;
+  [key: string]: unknown;
+};
+
 export const employeeProviderConfig = pgTable('employee_provider_config', {
   id: uuid('id').primaryKey().defaultRandom(),
   employeeId: uuid('employee_id').notNull(),
   providerType: providerConfigTypeEnum('provider_type').notNull(),
   providerId: text('provider_id').notNull(),
-  config: jsonb('config').$type<AnamAvatarProviderConfig>().notNull(),
+  config: jsonb('config').$type<AnamAvatarProviderConfig | SessionProviderConfig>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

@@ -3,9 +3,6 @@ export {
   ELEVENLABS_VOICE_MODEL_ID,
   FALLBACK_ELEVENLABS_VOICES,
 } from '@/features/elevenlabs/constants';
-export { ElevenLabsVoiceProvider } from '@/features/elevenlabs/components/voice-provider';
-export { useAgentSession } from '@/features/elevenlabs/hooks/use-agent-session';
-export type { AgentSessionStatus } from '@/features/elevenlabs/hooks/use-agent-session';
 export { useElevenLabsVoices } from '@/features/elevenlabs/hooks/use-elevenlabs-voices';
 export { useVoicePreview } from '@/features/elevenlabs/hooks/use-voice-preview';
 export type {

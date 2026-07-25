@@ -1,5 +1,10 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 
+/**
+ * ElevenLabs TTS only (eleven_v3).
+ * NOT Conversational Agents / WebRTC — Talk voice is PCM → Anam mouth on the client.
+ */
+
 export const ELEVENLABS_VOICE_MODEL_ID = 'eleven_v3' as const;
 
 export type ElevenLabsVoice = {
@@ -90,62 +95,25 @@ export async function synthesizeElevenLabsSpeech(input: SynthesizeSpeechInput) {
   };
 }
 
-function resolveAgentId(agentId?: string) {
-  const resolved = agentId?.trim() || process.env.ELEVENLABS_AGENT_ID?.trim();
-  if (!resolved) {
-    throw new Error('ELEVENLABS_AGENT_ID is missing from the environment');
-  }
-  return resolved;
-}
-
-/**
- * Mint a short-lived WebRTC conversation token for ElevenAgents.
- * @see https://elevenlabs.io/docs/eleven-agents/libraries/react
- */
-export async function createElevenLabsConversationToken(agentId?: string) {
-  const resolvedAgentId = resolveAgentId(agentId);
-  const apiKey = requireElevenLabsApiKey();
-
-  const url = new URL('https://api.elevenlabs.io/v1/convai/conversation/token');
-  url.searchParams.set('agent_id', resolvedAgentId);
-
-  const response = await fetch(url, {
-    headers: { 'xi-api-key': apiKey },
-  });
-
-  const json = (await response.json().catch(() => null)) as {
-    token?: string;
-    detail?: string | { message?: string };
-  } | null;
-
-  if (!response.ok || !json?.token) {
-    const detail =
-      typeof json?.detail === 'string'
-        ? json.detail
-        : json?.detail?.message ?? `ElevenLabs conversation token failed (${response.status})`;
-    throw new Error(detail);
+/** PCM for feeding Anam mouth (Talk voiceMode=elevenlabs). */
+export async function synthesizeElevenLabsPcm(input: SynthesizeSpeechInput) {
+  const text = input.text.trim();
+  if (!text) {
+    throw new Error('text is required');
   }
 
-  return {
-    conversationToken: json.token,
-    agentId: resolvedAgentId,
-  };
-}
-
-/** WebSocket signed URL fallback for private agents. */
-export async function createElevenLabsSignedUrl(agentId?: string) {
-  const resolvedAgentId = resolveAgentId(agentId);
   const client = createElevenLabsClient();
-  const response = await client.conversationalAi.conversations.getSignedUrl({
-    agentId: resolvedAgentId,
+  const audio = await client.textToSpeech.convert(input.voiceId, {
+    text,
+    modelId: input.modelId ?? ELEVENLABS_VOICE_MODEL_ID,
+    outputFormat: 'pcm_16000',
   });
 
-  if (!response.signedUrl) {
-    throw new Error('ElevenLabs signed URL missing from response');
-  }
-
+  const buffer = await readableToBuffer(audio as ReadableStream<Uint8Array>);
   return {
-    signedUrl: response.signedUrl,
-    agentId: resolvedAgentId,
+    audioBase64: buffer.toString('base64'),
+    contentType: 'audio/pcm',
+    sampleRate: 16000,
+    modelId: input.modelId ?? ELEVENLABS_VOICE_MODEL_ID,
   };
 }

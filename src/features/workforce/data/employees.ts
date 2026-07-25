@@ -14,8 +14,9 @@ export const NULLXES_ORG_ID = '58eaf337-1081-4402-9abe-c3d28d51dda6';
 export const DEFAULT_EMPLOYEE_ID = 'a8a5fb9e-4c84-489f-9097-8245349b4348';
 
 /**
- * Snapshot from platform DB (2026-07-25).
+ * Snapshot from platform DB.
  * anamReady reflects local env slot keys (Akane/Evgenia/Megan need _5/_9/_4).
+ * voiceMode=elevenlabs → EL PCM into Anam mouth (not EL Conversational Agents).
  */
 export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
   {
@@ -31,6 +32,9 @@ export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
       'https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/yDcySBiTFbk9RVgIYhpsS08xdSfsCCQV/one-shot_yDcySBiTFbk9RVgIYhpsS08xdSfsCCQV_anna-maria-nullxes1784069599151-cropped-tVY22TG8bVCR9uNWjAwGkfdib1ISDj.png',
     anamReady: true,
     organizationId: NULLXES_ORG_ID,
+    voiceMode: 'elevenlabs',
+    voiceId: 'zEDquLSb8Y0QVTR5PmMv',
+    studioVoiceId: 'elevenlabs-api-zEDquLSb8Y0QVTR5PmMv',
   },
   {
     id: 'b0ab9bc2-aed4-4e1c-875f-dfb9180d234a',
@@ -45,6 +49,9 @@ export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
       'https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/PiLHc6bJdbIh84H_-_z5GvdJfYfml8O0/one-shot_PiLHc6bJdbIh84H_-_z5GvdJfYfml8O0_adeline-kalen1783423254149-cropped-KguSoC2DGQOzqUzGy89n7caTkrLJXM.png',
     anamReady: true,
     organizationId: NULLXES_ORG_ID,
+    voiceMode: 'elevenlabs',
+    voiceId: 'Bqp6V4cdJUr2Qmhczfcl',
+    studioVoiceId: 'elevenlabs-api-Bqp6V4cdJUr2Qmhczfcl',
   },
   {
     id: 'd746a010-58bf-4ceb-8fa1-db4ed5db3bc2',
@@ -59,6 +66,9 @@ export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
       'https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/HF_scAdfTClWEcWybNeAIv1jSolKa1tV/one-shot_HF_scAdfTClWEcWybNeAIv1jSolKa1tV_akane-tsukiyama1782590009557-cropped-jYLNbJcqBK5yflw1CAi4xxJmvvmmQh.png',
     anamReady: false,
     organizationId: NULLXES_ORG_ID,
+    voiceMode: 'elevenlabs',
+    voiceId: 'Xb7hH8MSUJpSbSDYk0k2',
+    studioVoiceId: 'elevenlabs-api-Xb7hH8MSUJpSbSDYk0k2',
   },
   {
     id: 'fff66248-d7c0-4187-9930-550afef28748',
@@ -73,6 +83,9 @@ export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
       'https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/Y5BH0i3qonbSOYMVRsrm-1vEuzJBKCom/one-shot_Y5BH0i3qonbSOYMVRsrm-1vEuzJBKCom_evgenia-emelyanova1783038573320-cropped-KTHngQQdDpk3JhjRMR0QMh569dK12h.png',
     anamReady: false,
     organizationId: NULLXES_ORG_ID,
+    voiceMode: 'elevenlabs',
+    voiceId: 'Xb7hH8MSUJpSbSDYk0k2',
+    studioVoiceId: 'elevenlabs-api-Xb7hH8MSUJpSbSDYk0k2',
   },
   {
     id: 'a8a5fb9e-4c84-489f-9097-8245349b4348',
@@ -87,6 +100,9 @@ export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
       'https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/ZSsrbQD-Zdw6k5agy2uUITTlzb38natv/one-shot_ZSsrbQD-Zdw6k5agy2uUITTlzb38natv_kaira-nullxes1782523311734-cropped-ppNMTqnmFIPgVjKS4KMlIvNIEbVTnC.png',
     anamReady: true,
     organizationId: NULLXES_ORG_ID,
+    voiceMode: 'elevenlabs',
+    voiceId: 'oAkyDC87lsRvTg9MvKDG',
+    studioVoiceId: 'elevenlabs-api-oAkyDC87lsRvTg9MvKDG',
   },
   {
     id: 'f6863598-3f64-4aef-8dba-a1596315a9c4',
@@ -101,6 +117,9 @@ export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
       'https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/XSeVksE0pMaCCRLLJP2CyiIto8npb5Jk/one-shot_XSeVksE0pMaCCRLLJP2CyiIto8npb5Jk_megan-nullxes1782587787279-cropped-7MfnZ4ebDA4K9YRQ3sNSuKKw8tU2ra.png',
     anamReady: false,
     organizationId: NULLXES_ORG_ID,
+    voiceMode: 'elevenlabs',
+    voiceId: 'Xb7hH8MSUJpSbSDYk0k2',
+    studioVoiceId: 'elevenlabs-api-Xb7hH8MSUJpSbSDYk0k2',
   },
   {
     id: '2dc76351-269c-4bc0-b085-1589b9acef61',
@@ -115,6 +134,9 @@ export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
       'https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/ZSsrbQD-Zdw6k5agy2uUITTlzb38natv/one-shot_ZSsrbQD-Zdw6k5agy2uUITTlzb38natv_somnia1780699165409-refined-ncveH1N4nWvY5SKINnF70uo9nb70Kk.png',
     anamReady: true,
     organizationId: NULLXES_ORG_ID,
+    voiceMode: 'elevenlabs',
+    voiceId: 'oAkyDC87lsRvTg9MvKDG',
+    studioVoiceId: 'custom-elevenlabs',
   },
   {
     id: '28582def-fbe3-42cb-ba6e-8a3f2c938622',
@@ -129,10 +151,13 @@ export const FALLBACK_EMPLOYEES: DigitalEmployee[] = [
       'https://newgxnc1uqs0jnqm.public.blob.vercel-storage.com/avatar-previews/2ZnPZeUbwRdtHPCUejkDsLj10KX_L9dq/one-shot_2ZnPZeUbwRdtHPCUejkDsLj10KX_L9dq_yuki-naruka1782759347868-cropped-MKlWoB4gSmprA9xXNRn5SGUR6UahCI.png',
     anamReady: true,
     organizationId: NULLXES_ORG_ID,
+    voiceMode: 'elevenlabs',
+    voiceId: 'zeNkiY0X73ov9Cgf1lgj',
+    studioVoiceId: 'elevenlabs-api-zeNkiY0X73ov9Cgf1lgj',
   },
 ];
 
-/** @deprecated use FALLBACK_EMPLOYEES — kept for existing imports during transition */
+/** @deprecated use FALLBACK_EMPLOYEES */
 export const DIGITAL_EMPLOYEES = FALLBACK_EMPLOYEES;
 
 export const WORKFORCE_STATS = {

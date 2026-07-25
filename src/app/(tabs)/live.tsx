@@ -9,7 +9,11 @@ import { DEFAULT_EMPLOYEE_ID } from '@/features/workforce/data/employees';
 import { useEmployees } from '@/features/workforce/hooks/use-employees';
 
 export default function LiveScreen() {
-  const { employeeId: paramId } = useLocalSearchParams<{ employeeId?: string }>();
+  const { employeeId: paramId, voiceMode: talkVoiceMode } = useLocalSearchParams<{
+    employeeId?: string;
+    talkSessionId?: string;
+    voiceMode?: string;
+  }>();
   const { data: employees = [] } = useEmployees();
   const ready = useMemo(() => employees.filter((e) => e.anamReady), [employees]);
 
@@ -41,7 +45,8 @@ export default function LiveScreen() {
         <View className="px-5">
           <Text className="pt-2 text-[28px] font-semibold text-white">Live</Text>
           <Text className="mt-2 text-[15px] leading-6 text-white/45">
-            {employee?.name ?? 'Persona'} · {employee?.anamSlot ?? '—'}
+            {employee?.name ?? 'Persona'} · Anam
+            {` · voice=${typeof talkVoiceMode === 'string' ? talkVoiceMode : employee?.voiceMode ?? 'anam'}`}
           </Text>
         </View>
 

@@ -1,4 +1,8 @@
-import type { AnamAvatarProviderConfig } from '../../../../db/platform-schema';
+import type {
+  AnamAvatarProviderConfig,
+  SessionProviderConfig,
+} from '../../../../db/platform-schema';
+import { resolveTalkVoiceMode } from '@/features/talk/lib/resolve-talk-voice-mode';
 import type { DigitalEmployee, EmployeeStatus } from '@/features/workforce/types';
 
 function initialsFromName(name: string) {
@@ -33,10 +37,14 @@ export function mapPlatformEmployee(input: {
   status: string;
   organizationId: string;
   avatarConfig?: AnamAvatarProviderConfig | null;
+  sessionConfig?: SessionProviderConfig | null;
+  sessionProviderId?: string | null;
   slotKeyPresent?: boolean;
 }): DigitalEmployee {
   const config = input.avatarConfig ?? {};
   const meta = config.providerMetadata ?? {};
+  const session = input.sessionConfig ?? {};
+
   const avatarId =
     typeof config.avatarId === 'string' && config.avatarId.length > 0
       ? config.avatarId
@@ -53,6 +61,19 @@ export function mapPlatformEmployee(input: {
     typeof config.previewUrl === 'string' && config.previewUrl.length > 0
       ? config.previewUrl
       : null;
+  const voiceId =
+    typeof session.voiceId === 'string' && session.voiceId.length > 0
+      ? session.voiceId
+      : null;
+  const studioVoiceId =
+    typeof session.studioVoiceId === 'string' && session.studioVoiceId.length > 0
+      ? session.studioVoiceId
+      : null;
+  const sessionVoiceProvider =
+    (typeof session.voiceProvider === 'string' && session.voiceProvider) ||
+    input.sessionProviderId ||
+    null;
+
   const provisioningReady = config.provisioningStatus === 'ready';
   const slotReady = input.slotKeyPresent ?? false;
 
@@ -70,5 +91,12 @@ export function mapPlatformEmployee(input: {
       provisioningReady && avatarId && personaId && anamSlot && slotReady,
     ),
     organizationId: input.organizationId,
+    voiceMode: resolveTalkVoiceMode({
+      sessionVoiceProvider,
+      voiceId,
+      studioVoiceId,
+    }),
+    voiceId,
+    studioVoiceId,
   };
 }

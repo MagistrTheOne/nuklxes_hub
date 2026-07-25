@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import { createPlatformDb } from '../../db/platform';
 import {
@@ -6,12 +7,16 @@ import {
   employeeProviderConfig,
   organization,
   type AnamAvatarProviderConfig,
+  type SessionProviderConfig,
 } from '../../db/platform-schema';
 import { mapPlatformEmployee } from '@/features/workforce/lib/map-employee';
 import type { DigitalEmployee } from '@/features/workforce/types';
 import { isAnamSlot, slotKeyPresent } from '@/server/anam-key';
 
 const DEFAULT_ORG_NAME = 'NULLXES';
+
+const avatarCfg = alias(employeeProviderConfig, 'avatar_cfg');
+const sessionCfg = alias(employeeProviderConfig, 'session_cfg');
 
 function resolveOrgId() {
   return process.env.PLATFORM_ORG_ID?.trim() || null;
@@ -30,19 +35,20 @@ async function resolveNullxesOrgId(db: ReturnType<typeof createPlatformDb>) {
   return org?.id ?? null;
 }
 
-function toEmployee(
-  row: {
-    id: string;
-    name: string;
-    role: string;
-    status: string;
-    organizationId: string;
-  },
-  config: AnamAvatarProviderConfig | null,
-): DigitalEmployee {
+function toEmployee(row: {
+  id: string;
+  name: string;
+  role: string;
+  status: string;
+  organizationId: string;
+  avatarConfig: AnamAvatarProviderConfig | null;
+  sessionConfig: SessionProviderConfig | null;
+  sessionProviderId: string | null;
+}): DigitalEmployee {
+  const avatar = row.avatarConfig;
   const slot =
-    typeof config?.providerMetadata?.anamApiKeySlot === 'string'
-      ? config.providerMetadata.anamApiKeySlot
+    typeof avatar?.providerMetadata?.anamApiKeySlot === 'string'
+      ? avatar.providerMetadata.anamApiKeySlot
       : null;
 
   return mapPlatformEmployee({
@@ -51,7 +57,9 @@ function toEmployee(
     role: row.role,
     status: row.status,
     organizationId: row.organizationId,
-    avatarConfig: config,
+    avatarConfig: avatar,
+    sessionConfig: row.sessionConfig,
+    sessionProviderId: row.sessionProviderId,
     slotKeyPresent: slot && isAnamSlot(slot) ? slotKeyPresent(slot) : false,
   });
 }
@@ -70,30 +78,33 @@ export async function listPlatformEmployees(): Promise<DigitalEmployee[]> {
       role: digitalEmployee.role,
       status: digitalEmployee.status,
       organizationId: digitalEmployee.organizationId,
-      avatarConfig: employeeProviderConfig.config,
+      avatarConfig: avatarCfg.config,
+      sessionConfig: sessionCfg.config,
+      sessionProviderId: sessionCfg.providerId,
     })
     .from(digitalEmployee)
     .leftJoin(
-      employeeProviderConfig,
-      and(
-        eq(employeeProviderConfig.employeeId, digitalEmployee.id),
-        eq(employeeProviderConfig.providerType, 'avatar'),
-      ),
+      avatarCfg,
+      and(eq(avatarCfg.employeeId, digitalEmployee.id), eq(avatarCfg.providerType, 'avatar')),
+    )
+    .leftJoin(
+      sessionCfg,
+      and(eq(sessionCfg.employeeId, digitalEmployee.id), eq(sessionCfg.providerType, 'session')),
     )
     .where(eq(digitalEmployee.organizationId, orgId));
 
   return rows
     .map((row) =>
-      toEmployee(
-        {
-          id: row.id,
-          name: row.name,
-          role: row.role,
-          status: row.status,
-          organizationId: row.organizationId,
-        },
-        row.avatarConfig ?? null,
-      ),
+      toEmployee({
+        id: row.id,
+        name: row.name,
+        role: row.role,
+        status: row.status,
+        organizationId: row.organizationId,
+        avatarConfig: (row.avatarConfig as AnamAvatarProviderConfig | null) ?? null,
+        sessionConfig: (row.sessionConfig as SessionProviderConfig | null) ?? null,
+        sessionProviderId: row.sessionProviderId ?? null,
+      }),
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -108,29 +119,32 @@ export async function getPlatformEmployee(id: string): Promise<DigitalEmployee |
       role: digitalEmployee.role,
       status: digitalEmployee.status,
       organizationId: digitalEmployee.organizationId,
-      avatarConfig: employeeProviderConfig.config,
+      avatarConfig: avatarCfg.config,
+      sessionConfig: sessionCfg.config,
+      sessionProviderId: sessionCfg.providerId,
     })
     .from(digitalEmployee)
     .leftJoin(
-      employeeProviderConfig,
-      and(
-        eq(employeeProviderConfig.employeeId, digitalEmployee.id),
-        eq(employeeProviderConfig.providerType, 'avatar'),
-      ),
+      avatarCfg,
+      and(eq(avatarCfg.employeeId, digitalEmployee.id), eq(avatarCfg.providerType, 'avatar')),
+    )
+    .leftJoin(
+      sessionCfg,
+      and(eq(sessionCfg.employeeId, digitalEmployee.id), eq(sessionCfg.providerType, 'session')),
     )
     .where(eq(digitalEmployee.id, id))
     .limit(1);
 
   if (!row) return null;
 
-  return toEmployee(
-    {
-      id: row.id,
-      name: row.name,
-      role: row.role,
-      status: row.status,
-      organizationId: row.organizationId,
-    },
-    row.avatarConfig ?? null,
-  );
+  return toEmployee({
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    status: row.status,
+    organizationId: row.organizationId,
+    avatarConfig: (row.avatarConfig as AnamAvatarProviderConfig | null) ?? null,
+    sessionConfig: (row.sessionConfig as SessionProviderConfig | null) ?? null,
+    sessionProviderId: row.sessionProviderId ?? null,
+  });
 }

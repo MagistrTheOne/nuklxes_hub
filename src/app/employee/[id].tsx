@@ -1,15 +1,27 @@
+import { useAuth } from '@clerk/expo';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, MessageSquare, Video } from 'lucide-react-native';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { requestTalkSession } from '@/features/talk';
 import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
 import { useEmployee } from '@/features/workforce/hooks/use-employees';
 
 export default function EmployeeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { getToken } = useAuth();
   const { data: employee, isLoading } = useEmployee(id ?? '');
+  const [startingTalk, setStartingTalk] = useState(false);
 
   if (isLoading && !employee) {
     return (
@@ -66,17 +78,44 @@ export default function EmployeeScreen() {
                   {employee.anamReady ? 'live ready' : 'slot pending'}
                 </Text>
               </View>
-              {employee.anamSlot ? (
-                <Text className="mt-2 text-[12px] text-white/30">{employee.anamSlot}</Text>
-              ) : null}
+              <Text className="mt-2 text-[12px] text-white/30">
+                voiceMode={employee.voiceMode}
+                {employee.anamSlot ? ` · ${employee.anamSlot}` : ''}
+              </Text>
             </View>
           </View>
 
           <Pressable
-            onPress={() => Alert.alert('Talk', 'Chat SDK stub — coming later.')}
-            className="mt-4 h-14 flex-row items-center justify-center rounded-2xl bg-white active:opacity-90">
-            <MessageSquare size={18} color="#050505" />
-            <Text className="ml-2 text-[16px] font-semibold text-[#050505]">Talk</Text>
+            onPress={() => {
+              if (!employee.anamReady) {
+                Alert.alert('Talk', 'Anam persona not ready on this slot yet.');
+                return;
+              }
+              setStartingTalk(true);
+              void requestTalkSession({ getToken, employeeId: employee.id })
+                .then((session) => {
+                  router.push(
+                    `/(tabs)/live?employeeId=${session.employeeId}&talkSessionId=${session.sessionId}&voiceMode=${session.voiceMode}` as Href,
+                  );
+                })
+                .catch((err) => {
+                  Alert.alert(
+                    'Talk',
+                    err instanceof Error ? err.message : 'Talk bootstrap failed',
+                  );
+                })
+                .finally(() => setStartingTalk(false));
+            }}
+            disabled={startingTalk}
+            className="mt-4 h-14 flex-row items-center justify-center rounded-2xl bg-white active:opacity-90 disabled:opacity-40">
+            {startingTalk ? (
+              <ActivityIndicator color="#050505" />
+            ) : (
+              <>
+                <MessageSquare size={18} color="#050505" />
+                <Text className="ml-2 text-[16px] font-semibold text-[#050505]">Talk</Text>
+              </>
+            )}
           </Pressable>
 
           <Pressable
@@ -85,7 +124,9 @@ export default function EmployeeScreen() {
                 Alert.alert('Live', 'Anam persona not ready on this slot yet.');
                 return;
               }
-              router.push(`/(tabs)/live?employeeId=${employee.id}` as Href);
+              router.push(
+                `/(tabs)/live?employeeId=${employee.id}&voiceMode=${employee.voiceMode}` as Href,
+              );
             }}
             className="mt-3 h-14 flex-row items-center justify-center rounded-2xl border border-white/15 bg-[#0B0B0B] active:opacity-80">
             <Video size={18} color="#FFFFFF" />

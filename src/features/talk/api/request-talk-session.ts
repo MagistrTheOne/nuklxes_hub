@@ -1,3 +1,5 @@
+import type { TalkBootstrap } from '@/features/talk/types';
+
 type GetToken = (options?: { skipCache?: boolean }) => Promise<string | null>;
 
 function resolveApiUrl(path: string) {
@@ -5,39 +7,32 @@ function resolveApiUrl(path: string) {
   return `${base}${path}`;
 }
 
-export type ConversationTokenResponse = {
-  conversationToken: string;
-  agentId: string;
-};
-
-export async function requestElevenLabsConversationToken(params: {
+export async function requestTalkSession(params: {
   getToken: GetToken;
-  agentId?: string;
-}): Promise<ConversationTokenResponse> {
+  employeeId: string;
+}): Promise<TalkBootstrap> {
   const token = await params.getToken({ skipCache: true });
   if (!token) {
     throw new Error('Missing Clerk session token');
   }
 
-  const response = await fetch(resolveApiUrl('/api/v1/elevenlabs/conversation'), {
+  const response = await fetch(resolveApiUrl('/api/v1/talk/session'), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      agentId: params.agentId,
-    }),
+    body: JSON.stringify({ employeeId: params.employeeId }),
   });
 
   const json = (await response.json().catch(() => null)) as {
     success?: boolean;
     error?: string;
-    data?: ConversationTokenResponse;
+    data?: TalkBootstrap;
   } | null;
 
-  if (!response.ok || !json?.success || !json.data?.conversationToken) {
-    throw new Error(json?.error ?? `Conversation token failed (${response.status})`);
+  if (!response.ok || !json?.success || !json.data?.sessionToken) {
+    throw new Error(json?.error ?? `Talk session failed (${response.status})`);
   }
 
   return json.data;
