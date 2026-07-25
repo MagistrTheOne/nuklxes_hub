@@ -27,7 +27,10 @@ export default function SignInScreen() {
   const [isFinishing, setIsFinishing] = useState(false);
 
   const isFetching = fetchStatus === 'fetching' || isFinishing;
-  const visibleError = formError ?? firstClerkErrorMessage(errors);
+  const clerkError = firstClerkErrorMessage(errors);
+  const visibleError =
+    formError ??
+    (isFinishing || (clerkError && /already signed in/i.test(clerkError)) ? null : clerkError);
 
   const finalize = async () => {
     setIsFinishing(true);
@@ -38,6 +41,7 @@ export default function SignInScreen() {
         getToken,
         email: emailAddress.trim(),
         logLabel: 'sign-in',
+        clerk,
       },
     });
 
@@ -53,13 +57,22 @@ export default function SignInScreen() {
   const syncAndGoHome = async () => {
     setIsFinishing(true);
     setFormError(null);
-    await resumeExistingAuthSession({
-      clerk,
-      getToken,
-      email: emailAddress.trim(),
-      logLabel: 'sign-in',
-      routerReplace: (href) => router.replace(href),
-    });
+    try {
+      await resumeExistingAuthSession({
+        clerk,
+        getToken,
+        email: emailAddress.trim(),
+        logLabel: 'sign-in',
+        routerReplace: (href) => router.replace(href),
+      });
+      signIn.reset();
+    } catch (error) {
+      setIsFinishing(false);
+      if (__DEV__) {
+        console.warn('[sign-in] resume failed', error);
+      }
+      setFormError('Could not continue your session. Try again.');
+    }
   };
 
   const onSignIn = async () => {
@@ -168,8 +181,10 @@ export default function SignInScreen() {
           </Link>
         </Text>
       }>
-      <Text className="mb-1 text-[28px] font-semibold text-white">Sign in</Text>
-      <Text className="mb-8 text-[15px] text-white/55">Access your digital workforce</Text>
+      <Text className="mb-1 text-center text-[28px] font-semibold text-white">Sign in</Text>
+      <Text className="mb-8 text-center text-[15px] text-white/55">
+        Access your digital workforce
+      </Text>
 
       <AuthFormError message={visibleError} />
 

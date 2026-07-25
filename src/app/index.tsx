@@ -5,7 +5,7 @@ import { useSessionUiStore } from '@/features/app-shell/store/session-ui';
 import { AuthLoading } from '@/features/auth/components/auth-loading';
 
 export default function IndexGate() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const welcomePending = useSessionUiStore((s) => s.welcomePending);
 
   if (!isLoaded) {

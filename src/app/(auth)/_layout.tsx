@@ -4,7 +4,7 @@ import { Redirect, Stack } from 'expo-router';
 import { AuthLoading } from '@/features/auth/components/auth-loading';
 
 export default function AuthLayout() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth({ treatPendingAsSignedOut: false });
 
   if (!isLoaded) {
     return <AuthLoading />;

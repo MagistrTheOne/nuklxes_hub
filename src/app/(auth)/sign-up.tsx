@@ -84,6 +84,7 @@ export default function SignUpScreen() {
         email: emailAddress.trim(),
         fullName: fullName.trim(),
         logLabel: 'sign-up',
+        clerk,
       },
     });
 

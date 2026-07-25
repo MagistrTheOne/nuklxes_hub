@@ -5,7 +5,7 @@ import { HubTabBar } from '@/features/app-shell/components/hub-tab-bar';
 import { AuthLoading } from '@/features/auth/components/auth-loading';
 
 export default function TabsLayout() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
 
   if (!isLoaded) {
     return <AuthLoading />;

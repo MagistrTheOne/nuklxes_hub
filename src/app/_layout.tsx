@@ -21,7 +21,13 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+    <ClerkProvider
+      publishableKey={publishableKey}
+      tokenCache={tokenCache}
+      taskUrls={{
+        'choose-organization': '/welcome',
+        'reset-password': '/reset-password',
+      }}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{

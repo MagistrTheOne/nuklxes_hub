@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/expo';
+import { useAuth, useClerk } from '@clerk/expo';
 import { type Href, Redirect, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -16,9 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuthLoading } from '@/features/auth/components/auth-loading';
 import { useSessionUiStore } from '@/features/app-shell/store/session-ui';
+import { resolvePendingSessionTasks } from '@/features/auth/lib/resolve-session-tasks';
 
 export default function WelcomeScreen() {
-  const { isLoaded, isSignedIn } = useAuth();
+  // Pending session tasks are treated as signed-out by default — keep the user
+  // on welcome while we resolve org selection / other post-auth tasks.
+  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
+  const clerk = useClerk();
   const router = useRouter();
   const clearWelcome = useSessionUiStore((s) => s.clearWelcome);
   const lineWidth = useSharedValue(0);
@@ -29,6 +33,13 @@ export default function WelcomeScreen() {
       withTiming(48, { duration: 700, easing: Easing.out(Easing.cubic) }),
     );
   }, [lineWidth]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      return;
+    }
+    void resolvePendingSessionTasks(clerk, 'welcome');
+  }, [clerk, isLoaded, isSignedIn]);
 
   const lineStyle = useAnimatedStyle(() => ({
     width: lineWidth.value,

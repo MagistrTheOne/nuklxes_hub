@@ -82,8 +82,10 @@ export default function ResetPasswordScreen() {
             <Text className="text-[14px] font-semibold text-white">Back to sign in</Text>
           </Link>
         }>
-        <Text className="mb-1 text-[28px] font-semibold text-white">New password</Text>
-        <Text className="mb-8 text-[15px] text-white/55">Choose a new password for your account</Text>
+        <Text className="mb-1 text-center text-[28px] font-semibold text-white">New password</Text>
+        <Text className="mb-8 text-center text-[15px] text-white/55">
+          Choose a new password for your account
+        </Text>
 
         <AuthFormError message={visibleError} />
 
@@ -116,8 +118,8 @@ export default function ResetPasswordScreen() {
             <Text className="text-[14px] font-semibold text-white">Back to sign in</Text>
           </Link>
         }>
-        <Text className="mb-1 text-[28px] font-semibold text-white">Check your email</Text>
-        <Text className="mb-8 text-[15px] text-white/55">
+        <Text className="mb-1 text-center text-[28px] font-semibold text-white">Check your email</Text>
+        <Text className="mb-8 text-center text-[15px] text-white/55">
           Enter the reset code we sent to your email
         </Text>
 
@@ -150,8 +152,8 @@ export default function ResetPasswordScreen() {
           <Text className="text-[14px] font-semibold text-white">Back to sign in</Text>
         </Link>
       }>
-      <Text className="mb-1 text-[28px] font-semibold text-white">Reset password</Text>
-      <Text className="mb-8 text-[15px] text-white/55">
+      <Text className="mb-1 text-center text-[28px] font-semibold text-white">Reset password</Text>
+      <Text className="mb-8 text-center text-[15px] text-white/55">
         We will send a reset link to your email
       </Text>
 

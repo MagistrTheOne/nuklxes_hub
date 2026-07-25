@@ -1,11 +1,15 @@
 import type { Href } from 'expo-router';
 
 import { useSessionUiStore } from '@/features/app-shell/store/session-ui';
+import {
+  resolvePendingSessionTasks,
+  taskHrefForKey,
+} from '@/features/auth/lib/resolve-session-tasks';
 import { syncUserAfterAuth } from '@/features/auth/lib/sync-user';
 
 export type AuthNavigateArgs = {
   session?: {
-    currentTask?: unknown;
+    currentTask?: { key?: string } | null;
     getToken?: (options?: { skipCache?: boolean }) => Promise<string | null>;
   } | null;
   decorateUrl: (path: string) => string;
@@ -18,26 +22,65 @@ type FinishAuthOptions = {
   email: string;
   fullName?: string | null;
   logLabel: string;
+  clerk?: {
+    session?: {
+      id: string;
+      status?: string;
+      currentTask?: { key?: string } | null;
+    } | null;
+    user?: {
+      organizationMemberships?: Array<{ organization?: { id: string } | null }>;
+    } | null;
+    setActive: (params: {
+      session?: string;
+      organization?: string | null;
+    }) => Promise<unknown>;
+    createOrganization?: (params: { name: string }) => Promise<{ id: string }>;
+    client?: {
+      sessions?: Array<{
+        id: string;
+        status?: string;
+        currentTask?: { key?: string } | null;
+      }>;
+      signedInSessions?: Array<{
+        id: string;
+        status?: string;
+        currentTask?: { key?: string } | null;
+      }>;
+    } | null;
+  };
 };
+
+function navigateToPath(routerReplace: (href: Href) => void, path: string) {
+  if (path.startsWith('http')) {
+    if (typeof window !== 'undefined') {
+      window.location.href = path;
+    }
+    return;
+  }
+
+  routerReplace(path as Href);
+}
 
 export function createAuthNavigate(
   routerReplace: (href: Href) => void,
   path: string = '/welcome',
 ) {
   return ({ session, decorateUrl }: AuthNavigateArgs) => {
-    if (session?.currentTask) {
+    // Pending tasks are resolved by finishAuthSession before this runs.
+    // If one remains (e.g. forced password reset), send the user there.
+    const taskKey =
+      typeof session?.currentTask === 'object' && session?.currentTask
+        ? session.currentTask.key ?? null
+        : null;
+    const taskHref = taskHrefForKey(taskKey);
+    if (taskHref) {
+      navigateToPath(routerReplace, taskHref);
       return;
     }
 
     const url = decorateUrl(path);
-    if (url.startsWith('http')) {
-      if (typeof window !== 'undefined') {
-        window.location.href = url;
-      }
-      return;
-    }
-
-    routerReplace(url as Href);
+    navigateToPath(routerReplace, url);
   };
 }
 
@@ -66,6 +109,21 @@ export async function finishAuthSession(params: {
   if (error) {
     useSessionUiStore.getState().clearWelcome();
     return { error };
+  }
+
+  if (params.options.clerk) {
+    const { taskKey, resolved } = await resolvePendingSessionTasks(
+      params.options.clerk,
+      params.options.logLabel,
+    );
+    if (!resolved) {
+      const taskHref = taskHrefForKey(taskKey);
+      if (taskHref) {
+        useSessionUiStore.getState().clearWelcome();
+        params.routerReplace(taskHref as Href);
+        return { error: null };
+      }
+    }
   }
 
   await syncUserAfterAuth({
