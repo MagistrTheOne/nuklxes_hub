@@ -11,6 +11,9 @@ export async function requestChatSession(params: {
   getToken: GetToken;
   employeeId: string;
   userName?: string | null;
+  email?: string | null;
+  threadId?: string | null;
+  title?: string | null;
 }): Promise<ChatSessionCredentials> {
   const token = await params.getToken({ skipCache: true });
   if (!token) {
@@ -26,6 +29,9 @@ export async function requestChatSession(params: {
     body: JSON.stringify({
       employeeId: params.employeeId,
       userName: params.userName ?? undefined,
+      email: params.email ?? undefined,
+      threadId: params.threadId ?? undefined,
+      title: params.title ?? undefined,
     }),
   });
 

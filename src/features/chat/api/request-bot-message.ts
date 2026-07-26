@@ -10,6 +10,8 @@ export async function requestChatBotMessage(params: {
   employeeId: string;
   channelId: string;
   text: string;
+  email?: string | null;
+  userName?: string | null;
 }): Promise<string> {
   const token = await params.getToken({ skipCache: true });
   if (!token) {
@@ -26,6 +28,8 @@ export async function requestChatBotMessage(params: {
       employeeId: params.employeeId,
       channelId: params.channelId,
       text: params.text,
+      email: params.email ?? undefined,
+      userName: params.userName ?? undefined,
     }),
   });
 

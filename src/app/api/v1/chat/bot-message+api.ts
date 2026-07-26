@@ -1,6 +1,7 @@
 import { config as loadEnv } from 'dotenv';
 
 import { verifyClerkBearerToken } from '@/server/clerk-jwt';
+import { resolveStreamChatActor } from '@/server/stream/resolve-chat-actor';
 import { sendChatBotMessage } from '@/server/stream/send-bot-message';
 
 loadEnv({ path: '.env', quiet: true });
@@ -9,6 +10,8 @@ type Body = {
   employeeId?: string;
   channelId?: string;
   text?: string;
+  email?: string;
+  userName?: string;
 };
 
 /** Server-side bot inject (digital employee) into Stream messaging channel. */
@@ -28,11 +31,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const actor = await resolveStreamChatActor({
+      payload,
+      email: typeof body.email === 'string' ? body.email : null,
+      userName: typeof body.userName === 'string' ? body.userName : null,
+    });
+
     const messageId = await sendChatBotMessage({
       employeeId,
       channelId,
       text,
-      actorUserId: payload.sub,
+      actorUserId: actor.actorUserId,
+      ownerIds: actor.ownerIds,
     });
 
     return Response.json({ success: true, data: { messageId } });

@@ -25,6 +25,8 @@ export async function createChatSession(input: {
   employeeId: string;
   actorUserId: string;
   actorName: string;
+  /** Clerk + Neon ids for the same person — used for membership / ownership migrate. */
+  ownerIds?: string[];
   threadId?: string | null;
   title?: string;
 }): Promise<ChatSessionCredentials> {
@@ -33,6 +35,10 @@ export async function createChatSession(input: {
   if (!employeeId || !actorUserId) {
     throw new Error('employeeId and actorUserId are required');
   }
+
+  const ownerIds = (
+    input.ownerIds?.length ? input.ownerIds : [actorUserId]
+  ).filter((id, index, all) => id && all.indexOf(id) === index);
 
   let employee = null as Awaited<ReturnType<typeof getPlatformEmployee>>;
   if (process.env.DATABASE_URL?.trim()) {
@@ -56,7 +62,10 @@ export async function createChatSession(input: {
   const actorName = input.actorName.trim() || 'NULLXES user';
 
   await server.upsertUsers([
-    { id: actorUserId, name: actorName },
+    ...ownerIds.map((id) => ({
+      id,
+      name: actorName,
+    })),
     {
       id: botUserId,
       name: employee.name,
@@ -90,6 +99,22 @@ export async function createChatSession(input: {
       });
     } catch {
       // non-fatal; addMembers below may still succeed on existing channels
+    }
+
+    // Prefer Neon actor on linked accounts when legacy Clerk id is still stored.
+    try {
+      const state = await channel.query({ state: true, watch: false });
+      const existing = state.channel as { talkUserId?: string } | undefined;
+      const talkUserId = existing?.talkUserId;
+      if (
+        typeof talkUserId === 'string' &&
+        talkUserId !== actorUserId &&
+        ownerIds.includes(talkUserId)
+      ) {
+        await channel.updatePartial({ set: { talkUserId: actorUserId } });
+      }
+    } catch {
+      // non-fatal
     }
   }
 

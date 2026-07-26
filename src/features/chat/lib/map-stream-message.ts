@@ -4,8 +4,15 @@ type StreamLikeMessage = {
   id?: string;
   text?: string;
   created_at?: string | Date;
+  updated_at?: string | Date;
   user?: { id?: string } | null;
 };
+
+function toIso(value?: string | Date) {
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
+  return null;
+}
 
 export function mapStreamMessage(
   message: StreamLikeMessage,
@@ -16,17 +23,15 @@ export function mapStreamMessage(
 
   const userId = message.user?.id ?? '';
   const role = userId === botUserId ? 'assistant' : 'user';
-  const createdAt =
-    typeof message.created_at === 'string'
-      ? message.created_at
-      : message.created_at instanceof Date
-        ? message.created_at.toISOString()
-        : new Date().toISOString();
+  const createdAt = toIso(message.created_at) ?? new Date().toISOString();
+  const updatedAt = toIso(message.updated_at) ?? undefined;
 
   return {
     id: message.id,
     text,
     role,
     createdAt,
+    updatedAt:
+      updatedAt && updatedAt !== createdAt ? updatedAt : undefined,
   };
 }

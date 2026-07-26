@@ -15,5 +15,6 @@ export function getStreamCredentials() {
 
 export function getStreamServerClient() {
   const { apiKey, secret } = getStreamCredentials();
-  return StreamChat.getInstance(apiKey, secret);
+  // Default Stream axios timeout is aggressive; Hub session mint needs headroom.
+  return StreamChat.getInstance(apiKey, secret, { timeout: 15000 });
 }

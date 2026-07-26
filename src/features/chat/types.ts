@@ -15,4 +15,7 @@ export type ChatBubble = {
   text: string;
   role: 'user' | 'assistant';
   createdAt: string;
+  /** Optimistic send / edit in flight */
+  pending?: boolean;
+  updatedAt?: string;
 };

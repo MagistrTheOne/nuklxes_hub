@@ -24,11 +24,12 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: '#050505' },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Workforce' }} />
-      <Tabs.Screen name="live" options={{ title: 'Live' }} />
+      <Tabs.Screen name="live" options={{ title: 'Focus' }} />
       <Tabs.Screen name="voice" options={{ title: 'Voice' }} />
-      <Tabs.Screen name="talk" options={{ title: 'Talk' }} />
       <Tabs.Screen name="chat" options={{ title: 'Chat' }} />
-      <Tabs.Screen name="activity" options={{ href: null, title: 'Activity' }} />
+      <Tabs.Screen name="activity" options={{ title: 'Activity' }} />
+      {/* Lab / bootstrap — reachable via deep link only */}
+      <Tabs.Screen name="talk" options={{ href: null, title: 'Talk' }} />
     </Tabs>
   );
 }

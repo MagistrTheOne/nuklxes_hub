@@ -1,16 +1,20 @@
 import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useXaiVoiceSession } from '@/features/xai-voice';
 import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
 import { useEmployees } from '@/features/workforce/hooks/use-employees';
 
-/**
- * Separate Grok Voice sheet for Adeline — not Anam Talk.
- * Full mic ↔ PCM on Expo web; native shows guidance for now.
- */
+function callStatusLabel(status: string) {
+  if (status === 'minting' || status === 'connecting') return 'Connecting…';
+  if (status === 'connected') return 'On call';
+  if (status === 'error') return 'Unavailable';
+  return 'Ready';
+}
+
+/** Adeline voice call sheet — product UI only. */
 export default function XaiAdelineScreen() {
   const router = useRouter();
   const { isSignedIn } = useAuth();
@@ -35,7 +39,7 @@ export default function XaiAdelineScreen() {
             <Text className="text-[15px] text-white/55">Close</Text>
           </Pressable>
           <Text className="text-[13px] uppercase tracking-wide text-white/35">
-            xAI · Grok Voice
+            Voice call
           </Text>
           <View className="w-12" />
         </View>
@@ -50,13 +54,17 @@ export default function XaiAdelineScreen() {
             {adeline?.name ?? 'Adeline Kalen'}
           </Text>
           <Text className="mt-2 text-center text-[15px] leading-6 text-white/45">
-            Console agent · not Anam Talk · {Platform.OS === 'web' ? 'web audio' : 'native stub'}
+            Realtime voice with Adeline
           </Text>
-          <Text className="mt-2 text-[13px] text-white/30">Status: {status}</Text>
+          <Text className="mt-2 text-[13px] text-white/30">{callStatusLabel(status)}</Text>
         </View>
 
         {error ? (
-          <Text className="mt-4 px-5 text-center text-[13px] text-red-400">{error}</Text>
+          <Text className="mt-4 px-5 text-center text-[13px] text-red-400">
+            {error.includes('web') || error.includes('browser')
+              ? error
+              : 'Could not start the call. Try again.'}
+          </Text>
         ) : null}
 
         <ScrollView className="mt-6 flex-1 px-5" contentContainerClassName="gap-2 pb-4">

@@ -10,7 +10,7 @@ import type { XaiVoiceStatus } from '@/features/xai-voice/types';
 export function useXaiVoiceSession() {
   const [status] = useState<XaiVoiceStatus>('idle');
   const [error] = useState<string | null>(
-    'Adeline Grok Voice audio runs on Expo web for this iteration. Open Hub in the browser to call.',
+    'Voice calls are available in the web app for now.',
   );
 
   const start = useCallback(async () => {

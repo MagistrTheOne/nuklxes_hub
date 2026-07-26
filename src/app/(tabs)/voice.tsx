@@ -1,7 +1,10 @@
-import { Mic, Square } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useAuth, useUser } from '@clerk/expo';
+import { type Href, useRouter } from 'expo-router';
+import { AudioLines } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -9,120 +12,162 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { requestTalkSession } from '@/features/talk';
+import { EmployeeAvatar } from '@/features/workforce/components/employee-avatar';
+import { DEFAULT_EMPLOYEE_ID } from '@/features/workforce/data/employees';
+import { preferredEmployeeIdForEmail } from '@/features/workforce/data/org-defaults';
+import { useEmployees } from '@/features/workforce/hooks/use-employees';
 import {
-  DEFAULT_VOICE_PREVIEW_TEXT,
-  ELEVENLABS_VOICE_MODEL_ID,
-  useElevenLabsVoices,
-  useVoicePreview,
-} from '@/features/elevenlabs';
+  availabilityLabel,
+  employeeAvailable,
+} from '@/features/workforce/lib/product-status';
 
 /**
- * Voice studio preview only (ElevenLabs TTS eleven_v3).
- * Live Talk = Anam face + brain-stream — see Talk / Live tabs.
- * Not ElevenLabs Conversational Agents / WebRTC.
+ * Center Voice tab — pick digital employee, then start Anam video Talk.
  */
 export default function VoiceScreen() {
-  const { data: voices = [], isFetching, isError } = useElevenLabsVoices();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const activeId = selectedId ?? voices[0]?.voiceId ?? null;
-  const activeVoice = useMemo(
-    () => voices.find((v) => v.voiceId === activeId) ?? null,
-    [activeId, voices],
+  const { getToken } = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
+  const { data: employees = [], isFetching } = useEmployees();
+  const ready = useMemo(
+    () => employees.filter((e) => employeeAvailable(e)),
+    [employees],
   );
-  const { status, error, speak, stop } = useVoicePreview(activeId);
-  const busy = status === 'loading' || status === 'speaking';
+  const email = user?.primaryEmailAddress?.emailAddress ?? null;
+
+  const resolveId = () => {
+    const preferred = preferredEmployeeIdForEmail(email);
+    if (preferred && ready.some((e) => e.id === preferred)) return preferred;
+    if (ready.some((e) => e.id === DEFAULT_EMPLOYEE_ID)) return DEFAULT_EMPLOYEE_ID;
+    return ready[0]?.id ?? null;
+  };
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  const readyIds = ready.map((e) => e.id).join(',');
+
+  useEffect(() => {
+    setSelectedId((current) => {
+      if (current && ready.some((e) => e.id === current)) return current;
+      return resolveId();
+    });
+  }, [readyIds, email]);
+
+  const employee = useMemo(
+    () => employees.find((e) => e.id === selectedId) ?? null,
+    [employees, selectedId],
+  );
+
+  const available = employee ? employeeAvailable(employee) : false;
+  const statusText = employee
+    ? `Voice · ${employee.role.split(/\s+/)[0] ?? 'Assistant'} · ${availabilityLabel(employee)}`
+    : 'Select an assistant';
+
+  const startVideoTalk = () => {
+    if (!employee) return;
+    if (!available) {
+      Alert.alert('Talk', 'This assistant is unavailable right now.');
+      return;
+    }
+
+    setStarting(true);
+    void requestTalkSession({ getToken, employeeId: employee.id })
+      .then((session) => {
+        router.push(
+          `/(tabs)/live?employeeId=${session.employeeId}&talkSessionId=${session.sessionId}&voiceMode=${session.voiceMode}&autoStart=1` as Href,
+        );
+      })
+      .catch((err) => {
+        Alert.alert(
+          'Talk',
+          err instanceof Error ? err.message : 'Could not start video session',
+        );
+      })
+      .finally(() => setStarting(false));
+  };
 
   return (
     <View className="flex-1 bg-[#050505]">
       <SafeAreaView className="flex-1" edges={['top']}>
-        <View className="px-5">
-          <Text className="pt-2 text-[28px] font-semibold text-white">Voice</Text>
-          <Text className="mt-2 text-[15px] leading-6 text-white/45">
-            TTS preview · {ELEVENLABS_VOICE_MODEL_ID}
-            {activeVoice ? ` · ${activeVoice.name}` : ''}
+        <View className="px-5 pt-2">
+          <Text className="text-[28px] font-semibold text-white" numberOfLines={1}>
+            {employee?.name ?? 'Voice'}
           </Text>
-          <Text className="mt-1 text-[13px] text-white/30">
-            Live Talk uses Anam + brain — not EL Agents
-          </Text>
+          <View className="mt-2 flex-row items-center">
+            <View
+              className={`mr-1.5 h-2 w-2 rounded-full ${
+                available ? 'bg-[#34C759]' : 'bg-white/25'
+              }`}
+            />
+            <Text className="text-[15px] text-white/45" numberOfLines={1}>
+              {statusText}
+            </Text>
+          </View>
         </View>
 
-        <View className="mt-10 items-center px-5">
+        <View className="flex-1 items-center justify-center px-5">
           <Pressable
-            onPress={() => {
-              if (status === 'speaking') {
-                void stop();
-                return;
-              }
-              void speak(DEFAULT_VOICE_PREVIEW_TEXT);
-            }}
-            disabled={!activeId || status === 'loading'}
-            className="h-28 w-28 items-center justify-center rounded-full bg-white active:opacity-90 disabled:opacity-40">
-            {status === 'loading' ? (
-              <ActivityIndicator color="#050505" />
-            ) : status === 'speaking' ? (
-              <Square size={32} color="#050505" fill="#050505" />
-            ) : (
-              <Mic size={36} color="#050505" />
-            )}
-          </Pressable>
-          <Text className="mt-5 text-[15px] text-white/50">
-            {status === 'loading'
-              ? 'Synthesizing…'
-              : status === 'speaking'
-                ? 'Playing · tap to stop'
-                : 'Tap to preview'}
-          </Text>
-          {error ? <Text className="mt-2 text-center text-[13px] text-red-400">{error}</Text> : null}
-        </View>
+            onPress={startVideoTalk}
+            disabled={!employee || starting}
+            className="items-center active:opacity-90 disabled:opacity-50">
+            <View className="h-52 w-52 items-center justify-center rounded-full border border-white/10">
+              <View className="h-48 w-48 items-center justify-center rounded-full border border-white/10">
+                {employee ? (
+                  <EmployeeAvatar
+                    initials={employee.initials}
+                    previewUrl={employee.previewUrl}
+                    size="hero"
+                  />
+                ) : (
+                  <View className="h-44 w-44 items-center justify-center rounded-full bg-[#171717]">
+                    {isFetching ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text className="text-white/40">—</Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
 
-        <Text className="mb-3 mt-10 px-5 text-[12px] font-semibold tracking-[1.5px] text-white/35">
-          VOICES
-        </Text>
+            <View className="mt-8 items-center">
+              {starting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <AudioLines size={28} color="#FFFFFF" strokeWidth={1.8} />
+              )}
+              <Text className="mt-3 text-[16px] text-white/55">
+                {starting ? 'Starting video…' : 'Tap to start video'}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
 
         <ScrollView
-          className="flex-1 px-5"
-          contentContainerClassName="pb-10"
-          showsVerticalScrollIndicator={false}>
-          {voices.map((voice) => {
-            const active = voice.voiceId === activeId;
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="max-h-24"
+          contentContainerClassName="min-w-full flex-grow items-center justify-center gap-2 px-5 pb-4">
+          {ready.map((item) => {
+            const active = item.id === selectedId;
             return (
               <Pressable
-                key={voice.voiceId}
-                onPress={() => {
-                  if (busy) void stop();
-                  setSelectedId(voice.voiceId);
-                }}
-                className={`mb-2 flex-row items-center rounded-2xl border px-3.5 py-3 ${
-                  active
-                    ? 'border-white/30 bg-white'
-                    : 'border-white/10 bg-[#0B0B0B]'
+                key={item.id}
+                onPress={() => setSelectedId(item.id)}
+                className={`h-10 items-center justify-center rounded-full px-3.5 ${
+                  active ? 'bg-white' : 'border border-white/15 bg-transparent'
                 }`}>
-                <View className="flex-1">
-                  <Text
-                    className={`text-[16px] font-medium ${
-                      active ? 'text-[#050505]' : 'text-white'
-                    }`}>
-                    {voice.name}
-                  </Text>
-                  <Text
-                    className={`mt-0.5 text-[13px] ${
-                      active ? 'text-[#050505]/60' : 'text-white/40'
-                    }`}>
-                    {[voice.gender, voice.language, voice.category]
-                      .filter(Boolean)
-                      .join(' · ') || 'ElevenLabs'}
-                  </Text>
-                </View>
+                <Text
+                  className={`text-[13px] font-medium ${
+                    active ? 'text-[#050505]' : 'text-white/75'
+                  }`}>
+                  {item.name.split(/\s+/)[0]}
+                </Text>
               </Pressable>
             );
           })}
-
-          <View className="mt-4 flex-row items-center justify-center gap-2">
-            {isFetching ? <ActivityIndicator color="rgba(255,255,255,0.35)" /> : null}
-            <Text className="text-center text-[12px] text-white/30">
-              {isError ? 'Voices API unavailable · showing starters' : 'Synced from ElevenLabs'}
-            </Text>
-          </View>
         </ScrollView>
       </SafeAreaView>
     </View>

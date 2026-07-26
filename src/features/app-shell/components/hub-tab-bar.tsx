@@ -1,9 +1,9 @@
 import {
+  Activity,
   Crosshair,
   LayoutGrid,
   MessageCircle,
-  MessageSquare,
-  Mic,
+  Video,
 } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,19 +24,25 @@ type HubTabBarProps = {
   };
 };
 
+/** Product tabs — center control launches video Talk (Live). */
 const ICONS = {
   index: LayoutGrid,
   live: Crosshair,
-  voice: Mic,
-  talk: MessageSquare,
+  voice: Video,
   chat: MessageCircle,
+  activity: Activity,
 } as const;
 
-const HIDDEN_TABS = new Set(['activity']);
+const HIDDEN_TABS = new Set(['talk']);
 
 export function HubTabBar({ state, descriptors, navigation }: HubTabBarProps) {
   const insets = useSafeAreaInsets();
-  const visibleRoutes = state.routes.filter((route) => !HIDDEN_TABS.has(route.name));
+  const visibleRoutes = state.routes.filter((route) => {
+    if (HIDDEN_TABS.has(route.name)) return false;
+    const href = descriptors[route.key]?.options?.href;
+    if (href === null) return false;
+    return route.name in ICONS;
+  });
 
   return (
     <View
@@ -51,6 +57,12 @@ export function HubTabBar({ state, descriptors, navigation }: HubTabBarProps) {
           const isCenter = route.name === 'voice';
 
           const onPress = () => {
+            if (isCenter) {
+              // Instant video Talk with preferred / default employee.
+              navigation.navigate('live', { autoStart: '1' });
+              return;
+            }
+
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -67,10 +79,10 @@ export function HubTabBar({ state, descriptors, navigation }: HubTabBarProps) {
                 key={route.key}
                 accessibilityRole="button"
                 accessibilityState={focused ? { selected: true } : {}}
-                accessibilityLabel={options.title ?? route.name}
+                accessibilityLabel="Start video talk"
                 onPress={onPress}
                 className="-mt-5 h-16 w-16 items-center justify-center rounded-full bg-white active:opacity-90">
-                <Mic size={24} color="#050505" strokeWidth={2.2} />
+                <Video size={24} color="#050505" strokeWidth={2.2} />
               </Pressable>
             );
           }
