@@ -1,6 +1,6 @@
 import { useUser } from '@clerk/expo';
-import { useLocalSearchParams } from 'expo-router';
-import { Play, Square } from 'lucide-react-native';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, Mic, MicOff, Phone, Play } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,28 +23,26 @@ function resolveVoiceMode(
   return employeeMode ?? 'elevenlabs';
 }
 
-function statusLabel(status: string, pipelineState: string): string {
-  if (status === 'minting' || status === 'connecting') return 'Connecting…';
-  if (status === 'connected') {
-    if (pipelineState === 'thinking') return 'Thinking…';
-    if (pipelineState === 'speaking') return 'Speaking…';
-    return 'Live session · Secure connection';
-  }
-  if (status === 'error') return 'Unavailable';
-  return 'Standing by · connection check';
+function formatElapsed(seconds: number) {
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
+  const s = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, '0');
+  return `${m}:${s}`;
 }
 
 export default function LiveScreen() {
+  const router = useRouter();
   const {
     employeeId: paramId,
     talkSessionId,
     voiceMode: talkVoiceMode,
-    autoStart,
   } = useLocalSearchParams<{
     employeeId?: string;
     talkSessionId?: string;
     voiceMode?: string;
-    autoStart?: string;
   }>();
   const { user } = useUser();
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
@@ -64,11 +62,11 @@ export default function LiveScreen() {
 
   const [selectedId, setSelectedId] = useState(() => resolveId(paramId));
   const readyIds = ready.map((e) => e.id).join(',');
-  const autoStartedRef = useRef(false);
+  const [elapsed, setElapsed] = useState(0);
+  const connectedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     setSelectedId(resolveId(paramId));
-    autoStartedRef.current = false;
   }, [paramId, readyIds, email]);
 
   const employee = useMemo(
@@ -85,6 +83,8 @@ export default function LiveScreen() {
     status,
     pipelineState,
     error,
+    micEnabled,
+    setMicEnabled,
     start,
     stop,
     isNativeBridge,
@@ -96,115 +96,174 @@ export default function LiveScreen() {
     voiceMode,
     voiceId: employee?.voiceId,
     enableTalkPipeline: true,
+    startMicMuted: true,
   });
-
-  const shouldAutoStart =
-    autoStart === '1' || autoStart === 'true' || Boolean(talkSessionId);
-
-  useEffect(() => {
-    if (!shouldAutoStart) return;
-    if (autoStartedRef.current) return;
-    if (status !== 'idle') return;
-    autoStartedRef.current = true;
-    void start();
-  }, [shouldAutoStart, status, start, selectedId]);
 
   const connected = status === 'connected';
   const busy = status === 'minting' || status === 'connecting';
+  const displayName = employee?.name ?? 'Assistant';
+
+  useEffect(() => {
+    if (!connected) {
+      connectedAtRef.current = null;
+      setElapsed(0);
+      return;
+    }
+    connectedAtRef.current = Date.now();
+    const id = setInterval(() => {
+      if (!connectedAtRef.current) return;
+      setElapsed(Math.floor((Date.now() - connectedAtRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [connected]);
+
+  const statusHint = busy
+    ? 'Connecting…'
+    : connected
+      ? pipelineState === 'thinking'
+        ? 'Thinking…'
+        : pipelineState === 'speaking'
+          ? 'Speaking…'
+          : 'Live'
+      : 'Press Start session';
 
   return (
     <View className="flex-1 bg-[#050505]">
       <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
-        <View className="flex-row items-start justify-between px-5 pb-3 pt-2">
-          <View className="flex-1 pr-3">
-            <Text className="text-[24px] font-semibold text-white">
-              Talk · {employee?.name?.split(/\s+/)[0] ?? 'Assistant'}
-            </Text>
-            <Text className="mt-1 text-[14px] text-white/45">
-              {statusLabel(status, pipelineState)}
+        {/* Top chrome */}
+        <View className="z-10 flex-row items-center justify-between px-4 pb-2 pt-1">
+          <View className="min-w-0 flex-1 flex-row items-center">
+            <Pressable
+              onPress={() => {
+                if (connected || busy) void stop();
+                if (router.canGoBack()) router.back();
+                else router.replace('/(tabs)/chat' as Href);
+              }}
+              className="mr-2 h-10 w-10 items-center justify-center active:opacity-70">
+              <ArrowLeft size={22} color="#FFFFFF" />
+            </Pressable>
+            <Text className="flex-1 text-[17px] font-semibold text-white" numberOfLines={1}>
+              {displayName}
             </Text>
           </View>
           {connected ? (
-            <Pressable
-              onPress={() => void stop()}
-              className="h-9 items-center justify-center rounded-full border border-red-500/50 px-3.5 active:opacity-80">
-              <Text className="text-[13px] font-semibold text-red-400">End session</Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        <View className="mx-5 mb-3 flex-row flex-wrap gap-2">
-          {ready.slice(0, 6).map((item) => {
-            const active = item.id === selectedId;
-            return (
-              <Pressable
-                key={item.id}
-                onPress={() => {
-                  if (status === 'connected') void stop();
-                  autoStartedRef.current = false;
-                  setSelectedId(item.id);
-                }}
-                className={`h-8 items-center justify-center rounded-full px-3 ${
-                  active ? 'bg-white' : 'border border-white/15'
-                }`}>
-                <Text
-                  className={`text-[12px] font-medium ${
-                    active ? 'text-[#050505]' : 'text-white/65'
-                  }`}>
-                  {item.name.split(/\s+/)[0]}
+            <View className="flex-row items-center gap-2">
+              <View className="flex-row items-center rounded-full bg-black/40 px-2.5 py-1">
+                <View className="mr-1.5 h-2 w-2 rounded-full bg-[#FF3B30]" />
+                <Text className="text-[11px] font-semibold tracking-[0.8px] text-white">
+                  LIVE
                 </Text>
-              </Pressable>
-            );
-          })}
+              </View>
+              <Text className="text-[13px] text-white/55">{formatElapsed(elapsed)}</Text>
+            </View>
+          ) : (
+            <Text className="text-[13px] text-white/40">{statusHint}</Text>
+          )}
         </View>
 
-        <View className="relative mx-5 flex-1 overflow-hidden rounded-3xl border border-white/10 bg-[#0B0B0B]">
-          {isNativeBridge ? (
-            <PersonaStage ref={bridgeRef} onBridgeMessage={onBridgeMessage} />
-          ) : (
-            <PersonaStage />
-          )}
-
-          <View className="absolute inset-x-0 bottom-0 items-center pb-6 pt-16">
-            {error ? (
-              <Text className="mb-3 px-4 text-center text-[13px] text-red-400">
-                Session could not start. Try again.
-              </Text>
-            ) : null}
-
-            <Pressable
-              onPress={() => {
-                if (connected) {
-                  void stop();
-                  return;
-                }
-                void start();
-              }}
-              disabled={busy}
-              className="h-14 min-w-[200px] flex-row items-center justify-center rounded-full bg-white px-8 active:opacity-90 disabled:opacity-45">
-              {busy ? (
-                <Text className="text-[16px] font-semibold text-[#050505]">Connecting…</Text>
-              ) : connected ? (
-                <>
-                  <Square size={16} color="#050505" fill="#050505" />
-                  <Text className="ml-2 text-[16px] font-semibold text-[#050505]">
-                    Stop session
+        {!connected ? (
+          <View className="mx-4 mb-2 flex-row flex-wrap gap-2">
+            {ready.slice(0, 6).map((item) => {
+              const active = item.id === selectedId;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => {
+                    if (status === 'error') void stop();
+                    setSelectedId(item.id);
+                  }}
+                  className={`h-8 items-center justify-center rounded-full px-3 ${
+                    active ? 'bg-white' : 'border border-white/15'
+                  }`}>
+                  <Text
+                    className={`text-[12px] font-medium ${
+                      active ? 'text-[#050505]' : 'text-white/65'
+                    }`}>
+                    {item.name.split(/\s+/)[0]}
                   </Text>
-                </>
-              ) : (
-                <>
-                  <Play size={18} color="#050505" fill="#050505" />
-                  <Text className="ml-2 text-[16px] font-semibold text-[#050505]">
-                    Start session
-                  </Text>
-                </>
-              )}
-            </Pressable>
-
-            <Text className="mt-3 text-[12px] text-white/35">
-              {connected ? 'Video · live' : 'Tap to start video with avatar'}
-            </Text>
+                </Pressable>
+              );
+            })}
           </View>
+        ) : null}
+
+        {/* Stage — Anam fills only after Start; no fake photo */}
+        <View className="relative mx-0 flex-1 overflow-hidden bg-[#050505]">
+          <View className="absolute inset-0">
+            {isNativeBridge ? (
+              <PersonaStage
+                ref={bridgeRef}
+                fill
+                onBridgeMessage={onBridgeMessage}
+                className="h-full w-full"
+              />
+            ) : (
+              <PersonaStage fill className="h-full w-full" />
+            )}
+          </View>
+
+          {!connected ? (
+            <View className="absolute inset-0 items-center justify-center bg-[#050505]/92 px-8">
+              <Text className="text-center text-[22px] font-semibold text-white">
+                {displayName.split(/\s+/)[0]}
+              </Text>
+              <Text className="mt-2 text-center text-[14px] text-white/40">
+                Avatar loads after you start the session
+              </Text>
+              {error ? (
+                <Text className="mt-4 text-center text-[13px] text-red-400">{error}</Text>
+              ) : null}
+              <Pressable
+                onPress={() => void start()}
+                disabled={busy}
+                className="mt-8 h-14 min-w-[200px] flex-row items-center justify-center rounded-full bg-white px-8 active:opacity-90 disabled:opacity-45">
+                {busy ? (
+                  <Text className="text-[16px] font-semibold text-[#050505]">Connecting…</Text>
+                ) : (
+                  <>
+                    <Play size={18} color="#050505" fill="#050505" />
+                    <Text className="ml-2 text-[16px] font-semibold text-[#050505]">
+                      Start session
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          ) : null}
+
+          {connected ? (
+            <View className="absolute inset-x-0 bottom-0 items-center pb-8 pt-20">
+              {error ? (
+                <Text className="mb-3 px-4 text-center text-[13px] text-red-400">{error}</Text>
+              ) : null}
+              <View className="flex-row items-center gap-5 rounded-full border border-white/10 bg-black/55 px-5 py-3">
+                <Pressable
+                  onPress={() => setMicEnabled(!micEnabled)}
+                  className={`h-14 w-14 items-center justify-center rounded-full ${
+                    micEnabled ? 'bg-white/15' : 'bg-[#1A1A1A]'
+                  } active:opacity-80`}>
+                  {micEnabled ? (
+                    <Mic size={22} color="#FFFFFF" />
+                  ) : (
+                    <MicOff size={22} color="#FFFFFF" />
+                  )}
+                </Pressable>
+
+                <Pressable
+                  onPress={() => void stop()}
+                  className="h-16 w-16 items-center justify-center rounded-full bg-[#FF3B30] active:opacity-90">
+                  <Phone size={26} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
+                </Pressable>
+
+                <View className="h-14 w-14 items-center justify-center opacity-0">
+                  <Mic size={22} color="#FFFFFF" />
+                </View>
+              </View>
+              <Text className="mt-3 text-[12px] text-white/40">
+                {micEnabled ? 'Mic on' : 'Mic off · tap to speak'}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </SafeAreaView>
     </View>

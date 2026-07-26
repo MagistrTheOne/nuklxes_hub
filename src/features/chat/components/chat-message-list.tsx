@@ -22,8 +22,7 @@ type ChatMessageListProps = {
 
 function formatTime(iso: string) {
   try {
-    const date = new Date(iso);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   } catch {
     return '';
   }
@@ -77,14 +76,13 @@ export function ChatMessageList({
       data={messages}
       keyExtractor={(item) => item.id}
       className="flex-1"
-      contentContainerClassName="gap-4 px-1 pb-4 pt-2"
+      style={{ width: '100%' }}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 8, gap: 10 }}
       ListEmptyComponent={
-        <View className="mt-10 items-center px-6">
-          <Text className="text-center text-[15px] text-white/40">
-            Start a conversation
-          </Text>
+        <View className="mt-16 items-center px-6">
+          <Text className="text-center text-[15px] text-white/40">No messages yet</Text>
           <Text className="mt-2 text-center text-[13px] text-white/25">
-            Your messages stay on the right. {assistantName} replies on the left.
+            Say hello to {assistantName}
           </Text>
         </View>
       }
@@ -92,38 +90,17 @@ export function ChatMessageList({
         const mine = item.role === 'user';
         const editing = editingId === item.id;
         const busy = busyId === item.id || item.pending;
-        const label = mine ? 'You' : assistantName;
         const canMutate = Boolean(onUpdate && onDelete) && !item.id.startsWith('local-');
 
         return (
-          <View className={`w-full ${mine ? 'items-end' : 'items-start'}`}>
+          <View style={{ width: '100%', alignItems: mine ? 'flex-end' : 'flex-start' }}>
             <View
-              className={`mb-1.5 flex-row items-center gap-2 ${
-                mine ? 'flex-row-reverse' : ''
-              }`}>
-              <View
-                className={`rounded-full px-2 py-0.5 ${
-                  mine ? 'bg-white/12' : 'bg-[#1A1A1A] border border-white/10'
-                }`}>
-                <Text
-                  className={`text-[11px] font-semibold tracking-[0.4px] ${
-                    mine ? 'text-white/70' : 'text-white/55'
-                  }`}>
-                  {label}
-                </Text>
-              </View>
-              <Text className="text-[11px] text-white/25">{formatTime(item.createdAt)}</Text>
-              {item.updatedAt ? (
-                <Text className="text-[11px] text-white/20">edited</Text>
-              ) : null}
-            </View>
-
-            <View
-              className={`max-w-[78%] rounded-2xl px-4 py-3 ${
+              className={`rounded-2xl px-3.5 py-2.5 ${
                 mine
-                  ? 'rounded-tr-md bg-white'
-                  : 'rounded-tl-md border border-white/12 bg-[#1A1A1A]'
-              }`}>
+                  ? 'rounded-br-md bg-white'
+                  : 'rounded-bl-md border border-white/10 bg-[#1C1C1C]'
+              }`}
+              style={{ maxWidth: '82%' }}>
               {editing ? (
                 <View>
                   <TextInput
@@ -134,23 +111,20 @@ export function ChatMessageList({
                     className={`min-h-12 text-[15px] leading-5 ${
                       mine ? 'text-[#050505]' : 'text-white'
                     }`}
-                    placeholderTextColor={
-                      mine ? 'rgba(5,5,5,0.35)' : 'rgba(255,255,255,0.35)'
-                    }
                   />
-                  <View className="mt-3 flex-row justify-end gap-2">
+                  <View className="mt-2 flex-row justify-end gap-2">
                     <Pressable
                       onPress={() => {
                         setEditingId(null);
                         setEditDraft('');
                       }}
-                      className="h-8 w-8 items-center justify-center rounded-full bg-black/10 active:opacity-70">
+                      className="h-8 w-8 items-center justify-center rounded-full bg-black/10">
                       <X size={14} color={mine ? '#050505' : '#FFFFFF'} />
                     </Pressable>
                     <Pressable
                       onPress={() => void saveEdit(item.id)}
                       disabled={busy}
-                      className="h-8 w-8 items-center justify-center rounded-full bg-[#050505] active:opacity-80 disabled:opacity-40">
+                      className="h-8 w-8 items-center justify-center rounded-full bg-[#050505] disabled:opacity-40">
                       {busy ? (
                         <ActivityIndicator color="#FFFFFF" size="small" />
                       ) : (
@@ -160,18 +134,36 @@ export function ChatMessageList({
                   </View>
                 </View>
               ) : (
-                <Text
-                  className={`text-[15px] leading-6 ${
-                    mine ? 'text-[#050505]' : 'text-white/92'
-                  }`}>
-                  {item.text}
-                </Text>
+                <>
+                  <Text
+                    className={`text-[15px] leading-6 ${
+                      mine ? 'text-[#050505]' : 'text-white'
+                    }`}>
+                    {item.text}
+                  </Text>
+                  <View className="mt-1 flex-row items-center justify-end gap-1.5">
+                    {item.updatedAt ? (
+                      <Text
+                        className={`text-[10px] ${
+                          mine ? 'text-[#050505]/40' : 'text-white/30'
+                        }`}>
+                        edited
+                      </Text>
+                    ) : null}
+                    <Text
+                      className={`text-[11px] ${
+                        mine ? 'text-[#050505]/45' : 'text-white/35'
+                      }`}>
+                      {formatTime(item.createdAt)}
+                    </Text>
+                  </View>
+                </>
               )}
             </View>
 
             {canMutate && !editing ? (
               <View
-                className={`mt-1.5 flex-row items-center gap-3 ${
+                className={`mt-1 flex-row items-center gap-3 ${
                   mine ? 'justify-end' : 'justify-start'
                 }`}>
                 {mine ? (
@@ -182,8 +174,8 @@ export function ChatMessageList({
                     }}
                     disabled={busy}
                     className="flex-row items-center active:opacity-70 disabled:opacity-40">
-                    <Pencil size={12} color="rgba(255,255,255,0.35)" />
-                    <Text className="ml-1 text-[11px] text-white/35">Edit</Text>
+                    <Pencil size={11} color="rgba(255,255,255,0.32)" />
+                    <Text className="ml-1 text-[11px] text-white/32">Edit</Text>
                   </Pressable>
                 ) : null}
                 <Pressable
@@ -191,11 +183,11 @@ export function ChatMessageList({
                   disabled={busy}
                   className="flex-row items-center active:opacity-70 disabled:opacity-40">
                   {busy && busyId === item.id ? (
-                    <ActivityIndicator color="rgba(255,255,255,0.35)" size="small" />
+                    <ActivityIndicator color="rgba(255,255,255,0.32)" size="small" />
                   ) : (
                     <>
-                      <Trash2 size={12} color="rgba(255,255,255,0.35)" />
-                      <Text className="ml-1 text-[11px] text-white/35">Delete</Text>
+                      <Trash2 size={11} color="rgba(255,255,255,0.32)" />
+                      <Text className="ml-1 text-[11px] text-white/32">Delete</Text>
                     </>
                   )}
                 </Pressable>

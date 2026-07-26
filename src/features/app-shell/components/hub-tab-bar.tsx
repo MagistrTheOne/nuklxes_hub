@@ -58,8 +58,8 @@ export function HubTabBar({ state, descriptors, navigation }: HubTabBarProps) {
 
           const onPress = () => {
             if (isCenter) {
-              // Instant video Talk with preferred / default employee.
-              navigation.navigate('live', { autoStart: '1' });
+              // Open Talk stage — session starts only via Start session.
+              navigation.navigate('live');
               return;
             }
 

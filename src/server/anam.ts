@@ -31,12 +31,54 @@ export type CreateAnamSessionTokenInput = {
 };
 
 /**
+ * Lab keys often have concurrency=1. Stop orphaned active sessions so Hub can mint again.
+ * @see https://anam.ai/docs/api-reference/sessions/get-current-concurrency-status
+ */
+async function releaseAnamConcurrencySlot(apiKey: string) {
+  try {
+    const concRes = await fetch(`${ANAM_API_BASE}/sessions/concurrency`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    const conc = (await concRes.json().catch(() => null)) as {
+      canStartSession?: boolean;
+      active?: number;
+      limit?: number;
+    } | null;
+
+    if (!concRes.ok || conc?.canStartSession !== false) return;
+
+    const listRes = await fetch(`${ANAM_API_BASE}/sessions?status=active`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    const list = (await listRes.json().catch(() => null)) as {
+      data?: { id?: string }[];
+    } | null;
+
+    for (const session of list?.data ?? []) {
+      if (!session.id) continue;
+      try {
+        await fetch(`${ANAM_API_BASE}/sessions/${session.id}/stop`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}` },
+        });
+      } catch {
+        // best-effort
+      }
+    }
+  } catch {
+    // non-fatal — mint may still fail with concurrency error
+  }
+}
+
+/**
  * Exchange server-side Anam lab key (slot) for a short-lived client session token.
  * @see https://anam.ai/docs/api-reference/sessions/create-session-token
  */
 export async function createAnamSessionToken(input: CreateAnamSessionTokenInput) {
   const slot = input.anamSlot ?? 'ANAM_API_KEY';
   const apiKey = resolveAnamApiKey(slot);
+
+  await releaseAnamConcurrencySlot(apiKey);
 
   const response = await fetch(`${ANAM_API_BASE}/auth/session-token`, {
     method: 'POST',

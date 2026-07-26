@@ -15,6 +15,8 @@ export function createAnamStreamClient(sessionToken: string): AnamStreamClient {
     stopStreaming: () => client.stopStreaming(),
     sendUserMessage: (content) => client.sendUserMessage(content),
     interruptPersona: () => client.interruptPersona(),
+    muteInputAudio: () => client.muteInputAudio(),
+    unmuteInputAudio: () => client.unmuteInputAudio(),
     createTalkMessageStream: (correlationId) => client.createTalkMessageStream(correlationId),
     createAgentAudioInputStream: (config) => client.createAgentAudioInputStream(config),
     addListener: (event, callback) => {

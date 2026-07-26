@@ -106,3 +106,14 @@ Goal: цель платформы дать возможность пользов
 - Anam = лицо. Hub `brain-stream` = мозг. ElevenLabs = голос → рот Anam (уже).
 - Stream Chat = да (sync истории) + **свои кнопки/UI**. Stream Video = нет.
 - xAI Adeline = отдельный Grok Voice (`/xai-adeline`), не Anam Talk.
+  Запуск
+  npm start
+  Цель Команда
+  Web (Live / Adeline)
+  npm run web
+  Android
+  npm run android
+  Sync workforce из Neon
+  npm run db:sync
+  Probe Anam slots
+  npm run anam:probe

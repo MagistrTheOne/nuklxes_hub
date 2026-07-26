@@ -76,7 +76,7 @@ export default function VoiceScreen() {
     void requestTalkSession({ getToken, employeeId: employee.id })
       .then((session) => {
         router.push(
-          `/(tabs)/live?employeeId=${session.employeeId}&talkSessionId=${session.sessionId}&voiceMode=${session.voiceMode}&autoStart=1` as Href,
+          `/(tabs)/live?employeeId=${session.employeeId}&talkSessionId=${session.sessionId}&voiceMode=${session.voiceMode}` as Href,
         );
       })
       .catch((err) => {

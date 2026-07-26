@@ -11,6 +11,8 @@ import type {
 
 type PersonaStageProps = {
   className?: string;
+  /** Fill parent stage (call UI). */
+  fill?: boolean;
   onBridgeMessage?: (message: BridgeToRnMessage) => void;
 };
 
@@ -19,7 +21,7 @@ type PersonaStageProps = {
  * Requires Dev Client + EXPO_PUBLIC_API_URL serving /api/v1/anam/bridge.
  */
 export const PersonaStage = forwardRef<AnamBridgeHandle | null, PersonaStageProps>(
-  function PersonaStage({ className, onBridgeMessage }, ref) {
+  function PersonaStage({ className, fill, onBridgeMessage }, ref) {
     const webRef = useRef<WebView>(null);
     const readyRef = useRef(false);
     const queueRef = useRef<RnToBridgeMessage[]>([]);
@@ -97,13 +99,19 @@ export const PersonaStage = forwardRef<AnamBridgeHandle | null, PersonaStageProp
 
     return (
       <View
-        className={`overflow-hidden rounded-2xl border border-white/10 bg-[#050505] ${className ?? ''}`}
-        style={{ minHeight: 320 }}>
+        className={`overflow-hidden bg-[#050505] ${
+          fill ? '' : 'rounded-2xl border border-white/10'
+        } ${className ?? ''}`}
+        style={{ flex: fill ? 1 : undefined, minHeight: fill ? undefined : 320 }}>
         <WebView
           ref={webRef}
           source={{ uri: bridgeUrl }}
           onMessage={onMessage}
-          style={{ flex: 1, backgroundColor: '#050505', minHeight: 320 }}
+          style={{
+            flex: 1,
+            backgroundColor: '#050505',
+            minHeight: fill ? undefined : 320,
+          }}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled

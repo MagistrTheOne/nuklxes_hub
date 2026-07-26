@@ -25,7 +25,17 @@ export type UsePersonaSessionOptions = {
   voiceMode?: TalkVoiceMode;
   voiceId?: string | null;
   enableTalkPipeline?: boolean;
+  /** Start with mic muted (web). User unmutes via setMicEnabled. Default true. */
+  startMicMuted?: boolean;
 };
+
+function friendlyAnamError(raw: string) {
+  const lower = raw.toLowerCase();
+  if (lower.includes('concurrency')) {
+    return 'Avatar slot busy (plan limit). Stop other sessions and try again.';
+  }
+  return raw;
+}
 
 export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
   const employeeId = options.employeeId ?? DEFAULT_EMPLOYEE_ID;
@@ -37,6 +47,7 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
   const [status, setStatus] = useState<PersonaSessionStatus>('idle');
   const [pipelineState, setPipelineState] = useState<TalkPipelineState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [micEnabled, setMicEnabledState] = useState(false);
   const isWeb = Platform.OS === 'web';
 
   const stop = useCallback(async () => {
@@ -56,6 +67,8 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
     } finally {
       clientRef.current = null;
       setPipelineState('idle');
+      setMicEnabledState(false);
+      setError(null);
       setStatus('idle');
     }
   }, [isWeb]);
@@ -80,6 +93,29 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
     options.sessionToken,
   ]);
 
+  const setMicEnabled = useCallback(
+    (enabled: boolean) => {
+      const client = clientRef.current;
+      if (!client || status !== 'connected') {
+        setMicEnabledState(enabled);
+        return;
+      }
+
+      try {
+        if (enabled) {
+          client.unmuteInputAudio?.();
+        } else {
+          client.muteInputAudio?.();
+        }
+        setMicEnabledState(enabled);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Could not toggle microphone';
+        setError(message);
+      }
+    },
+    [status],
+  );
+
   const start = useCallback(async () => {
     setError(null);
     setStatus('minting');
@@ -95,7 +131,33 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
         );
         const client = createAnamStreamClient(sessionToken);
         clientRef.current = client;
+
+        const preferMuted = options.startMicMuted !== false;
+        if (preferMuted) {
+          try {
+            client.muteInputAudio?.();
+          } catch {
+            // mute before stream is best-effort
+          }
+        }
+
         await client.streamToVideoElement(ANAM_VIDEO_ELEMENT_ID);
+
+        if (preferMuted) {
+          try {
+            client.muteInputAudio?.();
+          } catch {
+            // keep trying after stream attaches
+          }
+          setMicEnabledState(false);
+        } else {
+          try {
+            client.unmuteInputAudio?.();
+          } catch {
+            // default SDK path leaves mic open
+          }
+          setMicEnabledState(true);
+        }
 
         if (options.enableTalkPipeline !== false) {
           detachPipelineRef.current = attachTalkVoicePipeline({
@@ -106,7 +168,7 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
             voiceMode: options.voiceMode ?? 'elevenlabs',
             voiceId: options.voiceId,
             setPipelineState,
-            onError: (message) => setError(message),
+            onError: (message) => setError(friendlyAnamError(message)),
           });
         }
 
@@ -127,20 +189,24 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
           voiceMode: options.voiceMode ?? 'elevenlabs',
           voiceId: options.voiceId,
           setPipelineState,
-          onError: (message) => setError(message),
+          onError: (message) => setError(friendlyAnamError(message)),
         });
       }
 
+      setMicEnabledState(true);
       bridgeRef.current.start(sessionToken);
       // status → connected comes from bridge message
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to start persona session';
+      const message = friendlyAnamError(
+        err instanceof Error ? err.message : 'Failed to start persona session',
+      );
       setError(message);
       setStatus('error');
       clientRef.current = null;
       detachPipelineRef.current = null;
       nativePipelineRef.current?.dispose();
       nativePipelineRef.current = null;
+      setMicEnabledState(false);
       if (__DEV__) {
         console.warn('[anam] start failed', err);
       }
@@ -151,6 +217,7 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
     isWeb,
     mintToken,
     options.enableTalkPipeline,
+    options.startMicMuted,
     options.talkSessionId,
     options.voiceId,
     options.voiceMode,
@@ -188,13 +255,13 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
       else if (message.status === 'idle') setStatus('idle');
       else if (message.status === 'error') {
         setStatus('error');
-        setError(message.error ?? 'Anam bridge error');
+        setError(friendlyAnamError(message.error ?? 'Anam bridge error'));
       }
       return;
     }
 
     if (message.type === 'error') {
-      setError(message.error);
+      setError(friendlyAnamError(message.error));
       return;
     }
 
@@ -223,6 +290,8 @@ export function usePersonaSession(options: UsePersonaSessionOptions = {}) {
     status,
     pipelineState,
     error,
+    micEnabled,
+    setMicEnabled,
     start,
     stop,
     sendText,

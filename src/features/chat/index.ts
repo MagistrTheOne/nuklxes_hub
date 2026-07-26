@@ -1,5 +1,6 @@
 export { requestChatBotMessage } from '@/features/chat/api/request-bot-message';
 export { requestChatSession } from '@/features/chat/api/request-chat-session';
+export { ChatInboxList } from '@/features/chat/components/chat-inbox-list';
 export { useEmployeeChat } from '@/features/chat/hooks/use-employee-chat';
 export type { EmployeeChatStatus } from '@/features/chat/hooks/use-employee-chat';
 export {
