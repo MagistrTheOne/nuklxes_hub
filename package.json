@@ -39,6 +39,8 @@
     "react-native-gesture-handler": "~2.32.0",
     "react-native-mmkv": "^4.3.2",
     "react-native-reanimated": "^4.5.0",
+    "react-native-rustore-remote-config": "file:vendor/rustore-react-native-remoteconfig",
+    "react-native-rustore-update": "file:vendor/react-native-rustore-update-sdk",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "^15.15.5",
@@ -66,6 +68,7 @@
     "lint": "expo lint",
     "db:sync": "node ./scripts/sync-from-neon.mjs",
     "anam:probe": "node ./scripts/probe-anam-slots.mjs",
+    "rustore:auth": "npx tsx ./scripts/rustore-auth.mjs",
     "db:studio": "drizzle-kit studio",
     "db:generate": "echo Do not generate migrations against shared Neon — schema owned by dplatform && exit 1",
     "db:push": "echo Do not push to shared Neon — schema owned by dplatform && exit 1"

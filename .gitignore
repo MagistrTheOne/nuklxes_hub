@@ -42,3 +42,8 @@ example
 # generated native folders
 /ios
 /android
+
+# RuStore vendor SDK local junk
+vendor/**/example/
+vendor/**/node_modules/
+vendor/**/.git/

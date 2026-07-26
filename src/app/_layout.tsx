@@ -6,21 +6,40 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Text, View } from 'react-native';
 
+import { initRustoreSdks } from '@/features/rustore';
 import { AppQueryProvider } from '@/lib/query-client';
 
 SplashScreen.preventAutoHideAsync();
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 
-if (!publishableKey) {
-  throw new Error('Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to your .env file');
-}
-
 export default function RootLayout() {
   useEffect(() => {
+    void initRustoreSdks().catch(() => {
+      // Never crash the process on optional store SDKs.
+    });
     SplashScreen.hideAsync();
   }, []);
+
+  if (!publishableKey) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: '#050505',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+        }}>
+        <StatusBar style="light" />
+        <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center' }}>
+          Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in this build.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ClerkProvider
